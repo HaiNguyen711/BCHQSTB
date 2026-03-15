@@ -55,6 +55,7 @@ QComboBox {
     border: 1px solid #d7dce5;
     border-radius: 10px;
     padding: 9px 10px;
+    min-height: 22px;
     selection-background-color: #059669;
 }
 
@@ -68,6 +69,7 @@ QPushButton {
     border: none;
     border-radius: 10px;
     padding: 9px 14px;
+    min-height: 22px;
     font-weight: 600;
 }
 

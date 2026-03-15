@@ -18,13 +18,15 @@ DB_CONNECTION_FILE = os.path.join(BASE_DIR, "config", "db_connection.json")
 
 _runtime_host = DB_HOST
 _runtime_port = DB_PORT
+_runtime_name = DB_NAME
 
 
 def load_connection_settings():
-    global _runtime_host, _runtime_port
+    global _runtime_host, _runtime_port, _runtime_name
 
     _runtime_host = DB_HOST
     _runtime_port = DB_PORT
+    _runtime_name = DB_NAME
 
     if not os.path.exists(DB_CONNECTION_FILE):
         return get_connection_settings()
@@ -37,6 +39,7 @@ def load_connection_settings():
 
     host = str(data.get("host", DB_HOST)).strip() or DB_HOST
     port = data.get("port", DB_PORT)
+    name = str(data.get("database", DB_NAME)).strip() or DB_NAME
 
     try:
         _runtime_port = int(port)
@@ -44,6 +47,7 @@ def load_connection_settings():
         _runtime_port = DB_PORT
 
     _runtime_host = host
+    _runtime_name = name
     return get_connection_settings()
 
 
@@ -51,6 +55,7 @@ def get_connection_settings():
     return {
         "host": _runtime_host,
         "port": _runtime_port,
+        "database": _runtime_name,
     }
 
 
@@ -60,12 +65,16 @@ def save_connection_settings():
         json.dump(get_connection_settings(), file, ensure_ascii=False, indent=2)
 
 
-def update_connection_settings(host, port, persist=True):
-    global _runtime_host, _runtime_port
+def update_connection_settings(host, port, database_name, persist=True):
+    global _runtime_host, _runtime_port, _runtime_name
 
     normalized_host = str(host).strip()
     if not normalized_host:
         raise ValueError("IP hoặc host database không được để trống.")
+
+    normalized_name = str(database_name).strip()
+    if not normalized_name:
+        raise ValueError("Tên database không được để trống.")
 
     try:
         normalized_port = int(str(port).strip())
@@ -77,6 +86,7 @@ def update_connection_settings(host, port, persist=True):
 
     _runtime_host = normalized_host
     _runtime_port = normalized_port
+    _runtime_name = normalized_name
 
     if persist:
         save_connection_settings()
@@ -95,7 +105,7 @@ def get_connection():
         port=_runtime_port,
         user=DB_USER,
         password=DB_PASSWORD,
-        database=DB_NAME,
+        database=_runtime_name,
         auth_plugin=DB_AUTH_PLUGIN,
         use_pure=DB_USE_PURE,
     )
