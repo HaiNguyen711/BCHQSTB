@@ -4,6 +4,7 @@ import shutil
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QComboBox,
     QFileDialog,
     QFrame,
     QGridLayout,
@@ -25,12 +26,22 @@ from services.citizen_service import get_citizen_detail, update_citizen_detail
 
 
 class CitizenDetailWindow(QWidget):
+    PERSONAL_STAGE_ORDER = [
+        "Thơ ấu",
+        "Cấp 1",
+        "Cấp 2",
+        "Cấp 3",
+        "Đại học",
+        "Sau đại học",
+    ]
+
     def __init__(self, cccd):
         super().__init__()
         self.cccd = cccd
         self.photo_path = None
         self.current_avatar_source = None
         self.sibling_rows = []
+        self.personal_stage_rows = []
 
         self.setWindowTitle("Hồ sơ công dân")
         self.resize(1280, 820)
@@ -191,12 +202,6 @@ class CitizenDetailWindow(QWidget):
         self.party_join_date = QLineEdit()
         self.union_join_date = QLineEdit()
         self.workplace_or_school = QLineEdit()
-        self.personal_situation = QTextEdit()
-        self.personal_situation.setPlaceholderText(
-            "Ghi tình hình kinh tế, chính trị, học tập của bản thân"
-        )
-        self.personal_situation.setMinimumHeight(130)
-
         fields = [
             ("Địa chỉ", self.address, "Khu phố / tổ", self.neighborhood),
             ("Trình độ học vấn", self.education_level, "Nghề nghiệp", self.occupation),
@@ -224,13 +229,32 @@ class CitizenDetailWindow(QWidget):
         personal_situation_layout.setContentsMargins(16, 16, 16, 16)
         personal_situation_layout.setSpacing(12)
 
-        personal_situation_title = QLabel("Tình hình bản thân")
+        personal_situation_header = QHBoxLayout()
+        personal_situation_header.setContentsMargins(0, 0, 0, 0)
+
+        personal_situation_title = QLabel("Lý lịch bản thân")
         personal_situation_title.setObjectName("sectionTitle")
-        personal_situation_layout.addWidget(personal_situation_title)
-        personal_situation_layout.addWidget(
-            self.make_field_label("Tình hình kinh tế, chính trị, học tập")
+        self.add_personal_stage_button = QPushButton("Thêm cấp")
+        self.add_personal_stage_button.setObjectName("secondaryButton")
+        self.add_personal_stage_button.clicked.connect(self.add_next_personal_stage)
+
+        personal_situation_header.addWidget(personal_situation_title)
+        personal_situation_header.addStretch()
+        personal_situation_header.addWidget(self.add_personal_stage_button)
+        personal_situation_layout.addLayout(personal_situation_header)
+
+        self.personal_stage_hint = QLabel(
+            "Thêm các giai đoạn theo thứ tự: Thơ ấu -> Cấp 1 -> Cấp 2 -> Cấp 3 -> Đại học -> Sau đại học"
         )
-        personal_situation_layout.addWidget(self.personal_situation)
+        self.personal_stage_hint.setObjectName("detailFieldLabel")
+        self.personal_stage_hint.setWordWrap(True)
+        personal_situation_layout.addWidget(self.personal_stage_hint)
+
+        self.personal_stage_container = QWidget()
+        self.personal_stage_layout = QVBoxLayout(self.personal_stage_container)
+        self.personal_stage_layout.setContentsMargins(0, 0, 0, 0)
+        self.personal_stage_layout.setSpacing(10)
+        personal_situation_layout.addWidget(self.personal_stage_container)
 
         page_layout.addWidget(personal_situation_card)
         page_layout.addStretch()
@@ -265,16 +289,21 @@ class CitizenDetailWindow(QWidget):
 
         self.father_name = QLineEdit()
         self.father_birth_date = QLineEdit()
+        self.father_occupation = QLineEdit()
         self.father_phone = QLineEdit()
-        self.father_status = QLineEdit()
+        self.father_status = QComboBox()
         self.mother_name = QLineEdit()
         self.mother_birth_date = QLineEdit()
+        self.mother_occupation = QLineEdit()
         self.mother_phone = QLineEdit()
-        self.mother_status = QLineEdit()
+        self.mother_status = QComboBox()
         self.father_history_before_1975 = QTextEdit()
         self.father_history_after_1975 = QTextEdit()
         self.mother_history_before_1975 = QTextEdit()
         self.mother_history_after_1975 = QTextEdit()
+
+        self.father_status.addItems(["Sống", "Chết"])
+        self.mother_status.addItems(["Sống", "Chết"])
 
         self.father_history_before_1975.setPlaceholderText("Thông tin lý lịch của cha trước năm 1975")
         self.father_history_after_1975.setPlaceholderText("Thông tin lý lịch của cha sau năm 1975")
@@ -298,6 +327,7 @@ class CitizenDetailWindow(QWidget):
             [
                 ("Họ tên cha", self.father_name),
                 ("Ngày sinh cha", self.father_birth_date),
+                ("Nghề nghiệp cha", self.father_occupation),
                 ("SĐT cha", self.father_phone),
                 ("Tình trạng cha", self.father_status),
                 ("Lý lịch cha trước 1975", self.father_history_before_1975),
@@ -309,6 +339,7 @@ class CitizenDetailWindow(QWidget):
             [
                 ("Họ tên mẹ", self.mother_name),
                 ("Ngày sinh mẹ", self.mother_birth_date),
+                ("Nghề nghiệp mẹ", self.mother_occupation),
                 ("SĐT mẹ", self.mother_phone),
                 ("Tình trạng mẹ", self.mother_status),
                 ("Lý lịch mẹ trước 1975", self.mother_history_before_1975),
@@ -451,23 +482,28 @@ class CitizenDetailWindow(QWidget):
         birth_date_input = QLineEdit()
         occupation_input = QLineEdit()
         workplace_input = QLineEdit()
+        relation_input = QComboBox()
 
         birth_date_input.setPlaceholderText("dd-mm-yyyy")
+        relation_input.addItems(["Anh trai", "Chị gái", "Em trai", "Em gái"])
         name_input.setText(sibling_data.get("full_name", "") or "")
         birth_date_input.setText(sibling_data.get("date_of_birth", "") or "")
         occupation_input.setText(sibling_data.get("occupation", "") or "")
         workplace_input.setText(sibling_data.get("workplace", "") or "")
+        self.set_combo_text(relation_input, sibling_data.get("relation", "") or "Anh trai")
 
         fields = [
-            ("Họ tên", name_input, "Ngày sinh", birth_date_input),
-            ("Nghề nghiệp", occupation_input, "Nơi công tác", workplace_input),
+            ("Quan hệ", relation_input, "Ngày sinh", birth_date_input),
+            ("Họ tên", name_input, "Nghề nghiệp", occupation_input),
+            ("Nơi công tác", workplace_input, "", None),
         ]
 
         for row, (label1, widget1, label2, widget2) in enumerate(fields):
             grid.addWidget(self.make_field_label(label1), row, 0)
             grid.addWidget(widget1, row, 1)
-            grid.addWidget(self.make_field_label(label2), row, 2)
-            grid.addWidget(widget2, row, 3)
+            if widget2 is not None:
+                grid.addWidget(self.make_field_label(label2), row, 2)
+                grid.addWidget(widget2, row, 3)
 
         row_layout.addLayout(grid)
         self.siblings_layout.addWidget(row_card)
@@ -475,6 +511,7 @@ class CitizenDetailWindow(QWidget):
         row_info = {
             "card": row_card,
             "title": title,
+            "relation": relation_input,
             "full_name": name_input,
             "date_of_birth": birth_date_input,
             "occupation": occupation_input,
@@ -511,6 +548,7 @@ class CitizenDetailWindow(QWidget):
         siblings = []
         for row_info in self.sibling_rows:
             sibling = {
+                "relation": row_info["relation"].currentText().strip(),
                 "full_name": row_info["full_name"].text().strip(),
                 "date_of_birth": row_info["date_of_birth"].text().strip(),
                 "occupation": row_info["occupation"].text().strip(),
@@ -574,6 +612,118 @@ class CitizenDetailWindow(QWidget):
         label.setObjectName("detailFieldLabel")
         return label
 
+    def set_combo_text(self, combo_box, value):
+        index = combo_box.findText(value)
+        if index >= 0:
+            combo_box.setCurrentIndex(index)
+
+    def add_next_personal_stage(self, stage_data=None):
+        stage_name = None
+        if stage_data:
+            stage_name = stage_data.get("stage", "")
+        elif len(self.personal_stage_rows) < len(self.PERSONAL_STAGE_ORDER):
+            stage_name = self.PERSONAL_STAGE_ORDER[len(self.personal_stage_rows)]
+
+        if not stage_name:
+            return
+
+        existing_stages = {row["stage"] for row in self.personal_stage_rows}
+        if stage_name in existing_stages:
+            return
+
+        row_card = QFrame()
+        row_card.setObjectName("infoCard")
+        row_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        title = QLabel(stage_name)
+        title.setObjectName("detailFieldLabel")
+        title.setFixedWidth(110)
+
+        row_layout = QHBoxLayout(row_card)
+        row_layout.setContentsMargins(14, 10, 14, 10)
+        row_layout.setSpacing(10)
+
+        remove_button = QPushButton("Xóa")
+        remove_button.setObjectName("secondaryButton")
+        remove_button.setFixedWidth(52)
+
+        content_input = QLineEdit()
+        content_input.setPlaceholderText(
+            f"Ghi ngắn gọn tình hình ở giai đoạn {stage_name.lower()}"
+        )
+        content_input.setText(stage_data.get("content", "") if stage_data else "")
+
+        row_layout.addWidget(title)
+        row_layout.addWidget(content_input, 1)
+        row_layout.addWidget(remove_button)
+
+        self.personal_stage_layout.addWidget(row_card)
+
+        row_info = {
+            "card": row_card,
+            "stage": stage_name,
+            "title": title,
+            "content": content_input,
+            "remove_button": remove_button,
+        }
+        self.personal_stage_rows.append(row_info)
+        self.personal_stage_rows.sort(
+            key=lambda row: self.PERSONAL_STAGE_ORDER.index(row["stage"])
+        )
+        self.rebuild_personal_stage_layout()
+        remove_button.clicked.connect(lambda: self.remove_personal_stage(row_info))
+        self.update_personal_stage_button_state()
+
+    def remove_personal_stage(self, row_info):
+        if row_info not in self.personal_stage_rows:
+            return
+
+        self.personal_stage_rows.remove(row_info)
+        row_info["card"].deleteLater()
+        self.update_personal_stage_button_state()
+
+    def rebuild_personal_stage_layout(self):
+        for row_info in self.personal_stage_rows:
+            self.personal_stage_layout.removeWidget(row_info["card"])
+        for row_info in self.personal_stage_rows:
+            self.personal_stage_layout.addWidget(row_info["card"])
+
+    def clear_personal_stages(self):
+        for row_info in self.personal_stage_rows:
+            row_info["card"].deleteLater()
+        self.personal_stage_rows = []
+        self.update_personal_stage_button_state()
+
+    def load_personal_stages(self, stages):
+        self.clear_personal_stages()
+        if isinstance(stages, list):
+            ordered = sorted(
+                stages,
+                key=lambda item: self.PERSONAL_STAGE_ORDER.index(item.get("stage"))
+                if item.get("stage") in self.PERSONAL_STAGE_ORDER else len(self.PERSONAL_STAGE_ORDER),
+            )
+            for stage in ordered:
+                self.add_next_personal_stage(stage)
+        self.update_personal_stage_button_state()
+
+    def collect_personal_stages(self):
+        stages = []
+        for row_info in self.personal_stage_rows:
+            content = row_info["content"].text().strip()
+            if content:
+                stages.append(
+                    {
+                        "stage": row_info["stage"],
+                        "content": content,
+                    }
+                )
+        return stages
+
+    def update_personal_stage_button_state(self):
+        self.add_personal_stage_button.setEnabled(
+            len(self.personal_stage_rows) < len(self.PERSONAL_STAGE_ORDER)
+        )
+
     def load_data(self):
         data = get_citizen_detail(self.cccd)
         if not data:
@@ -609,17 +759,19 @@ class CitizenDetailWindow(QWidget):
         self.party_join_date.setText(background.get("party_join_date", "") or "")
         self.union_join_date.setText(background.get("union_join_date", "") or "")
         self.workplace_or_school.setText(background.get("workplace_or_school", "") or "")
-        self.personal_situation.setPlainText(background.get("personal_situation", "") or "")
+        self.load_personal_stages(background.get("personal_situation_stages", []) or [])
 
         self.father_name.setText(background.get("father_name", "") or "")
         self.father_birth_date.setText(background.get("father_birth_date", "") or "")
+        self.father_occupation.setText(background.get("father_occupation", "") or "")
         self.father_phone.setText(background.get("father_phone", "") or "")
-        self.father_status.setText(background.get("father_status", "") or "")
+        self.set_combo_text(self.father_status, background.get("father_status", "") or "Sống")
 
         self.mother_name.setText(background.get("mother_name", "") or "")
         self.mother_birth_date.setText(background.get("mother_birth_date", "") or "")
+        self.mother_occupation.setText(background.get("mother_occupation", "") or "")
         self.mother_phone.setText(background.get("mother_phone", "") or "")
-        self.mother_status.setText(background.get("mother_status", "") or "")
+        self.set_combo_text(self.mother_status, background.get("mother_status", "") or "Sống")
         self.father_history_before_1975.setPlainText(background.get("father_history_before_1975", "") or "")
         self.father_history_after_1975.setPlainText(background.get("father_history_after_1975", "") or "")
         self.mother_history_before_1975.setPlainText(background.get("mother_history_before_1975", "") or "")
@@ -713,15 +865,17 @@ class CitizenDetailWindow(QWidget):
             "party_join_date": self.party_join_date.text().strip(),
             "union_join_date": self.union_join_date.text().strip(),
             "workplace_or_school": self.workplace_or_school.text().strip(),
-            "personal_situation": self.personal_situation.toPlainText().strip(),
+            "personal_situation": self.collect_personal_stages(),
             "father_name": self.father_name.text().strip(),
             "father_birth_date": self.father_birth_date.text().strip(),
+            "father_occupation": self.father_occupation.text().strip(),
             "father_phone": self.father_phone.text().strip(),
-            "father_status": self.father_status.text().strip(),
+            "father_status": self.father_status.currentText().strip(),
             "mother_name": self.mother_name.text().strip(),
             "mother_birth_date": self.mother_birth_date.text().strip(),
+            "mother_occupation": self.mother_occupation.text().strip(),
             "mother_phone": self.mother_phone.text().strip(),
-            "mother_status": self.mother_status.text().strip(),
+            "mother_status": self.mother_status.currentText().strip(),
             "father_history_before_1975": self.father_history_before_1975.toPlainText().strip(),
             "father_history_after_1975": self.father_history_after_1975.toPlainText().strip(),
             "mother_history_before_1975": self.mother_history_before_1975.toPlainText().strip(),
