@@ -31,4 +31,4 @@ class CitizenTable(BaseTable):
 
 class MilitaryTable(BaseTable):
     def __init__(self):
-        BaseTable.__init__(self, ['CCCD', 'Họ tên', 'Ngày sinh', 'Trạng thái', 'Ngày nhập ngũ', 'Đơn vị', ''])
+        BaseTable.__init__(self, ['CCCD', 'Họ tên', 'Ngày sinh', 'Trạng thái', 'Ngày nhập ngũ', 'Đơn vị'])

@@ -225,6 +225,24 @@ QTabBar::tab:selected {
     min-width: 140px;
 }
 
+#statValue {
+    font-size: 30px;
+    font-weight: 800;
+    color: #065f46;
+}
+
+#statCaption {
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+}
+
+#statMiniValue {
+    font-size: 16px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
 QTabWidget::pane {
     padding: 8px;
 }

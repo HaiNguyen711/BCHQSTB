@@ -5,7 +5,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
     QFileDialog,
+    QFormLayout,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -22,7 +24,200 @@ from PySide6.QtWidgets import (
 )
 
 from config.settings import CITIZEN_IMAGES_DIR
-from services.citizen_service import get_citizen_detail, update_citizen_detail
+from services.citizen_service import get_citizen_detail, update_citizen_detail, update_citizen_identity
+
+
+class ParentHistorySectionWidget(QWidget):
+    def __init__(self, title_text, parent=None):
+        super().__init__(parent)
+        self.title_text = title_text
+        self.placeholder_text = ""
+        self.rows = []
+        self.build_ui()
+
+    def build_ui(self):
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(6)
+
+        header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+
+        self.title_label = QLabel(self.title_text)
+        self.title_label.setObjectName("mutedLabel")
+
+        self.add_button = QPushButton("Thêm")
+        self.add_button.setObjectName("secondaryButton")
+        self.add_button.setFixedWidth(64)
+        self.add_button.clicked.connect(self.add_row)
+
+        header.addWidget(self.title_label)
+        header.addStretch()
+        header.addWidget(self.add_button)
+
+        self.rows_container = QWidget()
+        self.rows_layout = QVBoxLayout(self.rows_container)
+        self.rows_layout.setContentsMargins(0, 0, 0, 0)
+        self.rows_layout.setSpacing(6)
+
+        root.addLayout(header)
+        root.addWidget(self.rows_container)
+
+    def setPlaceholderText(self, text):
+        self.placeholder_text = text or ""
+        for row in self.rows:
+            row["content"].setPlaceholderText(self.placeholder_text)
+
+    def setMinimumHeight(self, _height):
+        return
+
+    def add_row(self, entry_data=None):
+        entry_data = entry_data or {}
+
+        row_card = QFrame()
+        row_card.setObjectName("infoCard")
+        row_layout = QHBoxLayout(row_card)
+        row_layout.setContentsMargins(10, 8, 10, 8)
+        row_layout.setSpacing(8)
+
+        from_year = QLineEdit()
+        from_year.setPlaceholderText("Từ")
+        from_year.setFixedWidth(64)
+        from_year.setText(entry_data.get("from_year", "") or "")
+
+        to_year = QLineEdit()
+        to_year.setPlaceholderText("Đến")
+        to_year.setFixedWidth(64)
+        to_year.setText(entry_data.get("to_year", "") or "")
+
+        content = QLineEdit()
+        content.setPlaceholderText(self.placeholder_text or "Nội dung")
+        content.setText(entry_data.get("content", "") or "")
+
+        remove_button = QPushButton("Xóa")
+        remove_button.setObjectName("secondaryButton")
+        remove_button.setFixedWidth(52)
+
+        row_layout.addWidget(from_year)
+        row_layout.addWidget(to_year)
+        row_layout.addWidget(content, 1)
+        row_layout.addWidget(remove_button)
+        self.rows_layout.addWidget(row_card)
+
+        row_info = {
+            "card": row_card,
+            "from_year": from_year,
+            "to_year": to_year,
+            "content": content,
+            "remove_button": remove_button,
+        }
+        self.rows.append(row_info)
+        remove_button.clicked.connect(lambda: self.remove_row(row_info))
+
+    def remove_row(self, row_info):
+        if row_info not in self.rows:
+            return
+        self.rows.remove(row_info)
+        row_info["card"].deleteLater()
+
+    def clear_rows(self):
+        for row in self.rows:
+            row["card"].deleteLater()
+        self.rows = []
+
+    def load_entries(self, entries):
+        self.clear_rows()
+        for entry in entries or []:
+            self.add_row(entry)
+
+    def collect_entries(self):
+        entries = []
+        for row in self.rows:
+            from_year = row["from_year"].text().strip()
+            to_year = row["to_year"].text().strip()
+            content = row["content"].text().strip()
+            if from_year or to_year or content:
+                entries.append(
+                    {
+                        "from_year": from_year,
+                        "to_year": to_year,
+                        "content": content,
+                    }
+                )
+        return entries
+
+
+class CitizenIdentityDialog(QDialog):
+    def __init__(self, citizen, parent=None):
+        super().__init__(parent)
+        self.citizen = citizen or {}
+        self.setup_ui()
+        self.load_data()
+
+    def setup_ui(self):
+        self.setWindowTitle("Sửa thông tin cá nhân")
+        self.resize(420, 320)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(18, 18, 18, 18)
+        root.setSpacing(12)
+
+        title = QLabel("Sửa nhanh thông tin cá nhân")
+        title.setObjectName("sectionTitle")
+
+        form = QFormLayout()
+        form.setSpacing(12)
+
+        self.cccd_input = QLineEdit()
+        self.date_of_birth_input = QLineEdit()
+        self.date_of_birth_input.setPlaceholderText("dd-mm-yyyy")
+        self.gender_input = QComboBox()
+        self.gender_input.addItems(["Nam", "Nữ"])
+        self.phone_input = QLineEdit()
+        self.ward_input = QLineEdit()
+
+        form.addRow("CCCD", self.cccd_input)
+        form.addRow("Ngày sinh", self.date_of_birth_input)
+        form.addRow("Giới tính", self.gender_input)
+        form.addRow("SĐT", self.phone_input)
+        form.addRow("Phường", self.ward_input)
+
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+
+        cancel_button = QPushButton("Hủy")
+        cancel_button.setObjectName("secondaryButton")
+        cancel_button.clicked.connect(self.reject)
+
+        save_button = QPushButton("Lưu")
+        save_button.setObjectName("primaryButton")
+        save_button.clicked.connect(self.accept)
+
+        buttons.addWidget(cancel_button)
+        buttons.addWidget(save_button)
+
+        root.addWidget(title)
+        root.addLayout(form)
+        root.addStretch()
+        root.addLayout(buttons)
+
+    def load_data(self):
+        self.cccd_input.setText(self.citizen.get("cccd", "") or "")
+        self.date_of_birth_input.setText(self.citizen.get("date_of_birth", "") or "")
+        current_gender = self.citizen.get("gender", "") or "Nam"
+        index = self.gender_input.findText(current_gender)
+        self.gender_input.setCurrentIndex(index if index >= 0 else 0)
+        self.phone_input.setText(self.citizen.get("phone", "") or "")
+        self.ward_input.setText(self.citizen.get("ward", "") or "")
+
+    def get_payload(self):
+        return {
+            "cccd": self.cccd_input.text().strip(),
+            "date_of_birth": self.date_of_birth_input.text().strip(),
+            "gender": self.gender_input.currentText().strip(),
+            "phone": self.phone_input.text().strip(),
+            "ward": self.ward_input.text().strip(),
+        }
 
 
 class CitizenDetailWindow(QWidget):
@@ -44,6 +239,12 @@ class CitizenDetailWindow(QWidget):
         self.current_avatar_source = None
         self.sibling_rows = []
         self.personal_stage_rows = []
+        self.parent_history_rows = {
+            "father_before_1975": [],
+            "father_after_1975": [],
+            "mother_before_1975": [],
+            "mother_after_1975": [],
+        }
 
         self.setWindowTitle("Hồ sơ công dân")
         self.resize(1280, 820)
@@ -119,6 +320,10 @@ class CitizenDetailWindow(QWidget):
         self.btn_upload.setObjectName("secondaryButton")
         self.btn_upload.clicked.connect(self.upload_photo)
 
+        self.btn_edit_identity = QPushButton("Sửa thông tin cá nhân")
+        self.btn_edit_identity.setObjectName("secondaryButton")
+        self.btn_edit_identity.clicked.connect(self.edit_identity)
+
         self.btn_save = QPushButton("Lưu hồ sơ")
         self.btn_save.setObjectName("primaryButton")
         self.btn_save.clicked.connect(self.save_data)
@@ -133,6 +338,7 @@ class CitizenDetailWindow(QWidget):
         layout.addWidget(self.ward_label)
         layout.addSpacing(12)
         layout.addWidget(self.btn_upload)
+        layout.addWidget(self.btn_edit_identity)
         layout.addStretch()
         layout.addWidget(self.btn_save)
 
@@ -223,10 +429,10 @@ class CitizenDetailWindow(QWidget):
         self.mother_occupation = QLineEdit()
         self.mother_phone = QLineEdit()
         self.mother_status = QComboBox()
-        self.father_history_before_1975 = QTextEdit()
-        self.father_history_after_1975 = QTextEdit()
-        self.mother_history_before_1975 = QTextEdit()
-        self.mother_history_after_1975 = QTextEdit()
+        self.father_history_before_1975 = self.build_parent_history_widget("Lý lịch cha trước 1975")
+        self.father_history_after_1975 = self.build_parent_history_widget("Lý lịch cha sau 1975")
+        self.mother_history_before_1975 = self.build_parent_history_widget("Lý lịch mẹ trước 1975")
+        self.mother_history_after_1975 = self.build_parent_history_widget("Lý lịch mẹ sau 1975")
 
         self.father_status.addItems(["Sống", "Chết"])
         self.mother_status.addItems(["Sống", "Chết"])
@@ -455,6 +661,9 @@ class CitizenDetailWindow(QWidget):
         layout.addWidget(card)
         layout.addStretch()
         return page
+
+    def build_parent_history_widget(self, title_text):
+        return ParentHistorySectionWidget(title_text, self)
 
     def build_parent_side(self, title_text, fields):
         card = QFrame()
@@ -827,10 +1036,10 @@ class CitizenDetailWindow(QWidget):
         self.mother_occupation.setText(background.get("mother_occupation", "") or "")
         self.mother_phone.setText(background.get("mother_phone", "") or "")
         self.set_combo_text(self.mother_status, background.get("mother_status", "") or "Sống")
-        self.father_history_before_1975.setPlainText(background.get("father_history_before_1975", "") or "")
-        self.father_history_after_1975.setPlainText(background.get("father_history_after_1975", "") or "")
-        self.mother_history_before_1975.setPlainText(background.get("mother_history_before_1975", "") or "")
-        self.mother_history_after_1975.setPlainText(background.get("mother_history_after_1975", "") or "")
+        self.father_history_before_1975.load_entries(background.get("father_history_before_1975_entries", []) or [])
+        self.father_history_after_1975.load_entries(background.get("father_history_after_1975_entries", []) or [])
+        self.mother_history_before_1975.load_entries(background.get("mother_history_before_1975_entries", []) or [])
+        self.mother_history_after_1975.load_entries(background.get("mother_history_after_1975_entries", []) or [])
 
         self.family_status.setText(background.get("family_status", "") or "")
         self.criminal_record.setText(background.get("criminal_record", "") or "")
@@ -899,6 +1108,55 @@ class CitizenDetailWindow(QWidget):
         self.current_avatar_source = new_path
         self.update_avatar_display()
 
+    def edit_identity(self):
+        current_citizen = {
+            "cccd": self.cccd,
+            "date_of_birth": self.dob_label.text().replace("Ngày sinh:", "").strip(),
+            "gender": self.gender_label.text().replace("Giới tính:", "").strip(),
+            "phone": self.phone_label.text().replace("SĐT:", "").strip(),
+            "ward": self.ward_label.text().replace("Phường:", "").strip(),
+        }
+        dialog = CitizenIdentityDialog(current_citizen, self)
+        if dialog.exec() != QDialog.Accepted:
+            return
+
+        payload = dialog.get_payload()
+        old_cccd = self.cccd
+        new_cccd = payload.get("cccd", "")
+        updated_photo_path = ""
+        pending_photo_move = None
+
+        if old_cccd != new_cccd and self.current_avatar_source and os.path.exists(self.current_avatar_source):
+            _, extension = os.path.splitext(self.current_avatar_source)
+            new_photo_path = os.path.join(CITIZEN_IMAGES_DIR, f"{new_cccd}{extension or '.jpg'}")
+            if self.current_avatar_source != new_photo_path:
+                updated_photo_path = new_photo_path
+                pending_photo_move = (self.current_avatar_source, new_photo_path)
+
+        ok, message = update_citizen_identity(
+            old_cccd,
+            new_cccd,
+            payload.get("date_of_birth", ""),
+            payload.get("gender", ""),
+            payload.get("phone", ""),
+            payload.get("ward", ""),
+            updated_photo_path,
+        )
+        if not ok:
+            QMessageBox.warning(self, "Lỗi", message)
+            return
+
+        if pending_photo_move:
+            old_photo_path, new_photo_path = pending_photo_move
+            os.replace(old_photo_path, new_photo_path)
+            self.current_avatar_source = new_photo_path
+            if self.photo_path:
+                self.photo_path = new_photo_path
+
+        self.cccd = new_cccd
+        QMessageBox.information(self, "Thành công", message)
+        self.load_data()
+
     def save_data(self):
         data = {
             "cccd": self.cccd,
@@ -931,10 +1189,10 @@ class CitizenDetailWindow(QWidget):
             "mother_occupation": self.mother_occupation.text().strip(),
             "mother_phone": self.mother_phone.text().strip(),
             "mother_status": self.mother_status.currentText().strip(),
-            "father_history_before_1975": self.father_history_before_1975.toPlainText().strip(),
-            "father_history_after_1975": self.father_history_after_1975.toPlainText().strip(),
-            "mother_history_before_1975": self.mother_history_before_1975.toPlainText().strip(),
-            "mother_history_after_1975": self.mother_history_after_1975.toPlainText().strip(),
+            "father_history_before_1975": self.father_history_before_1975.collect_entries(),
+            "father_history_after_1975": self.father_history_after_1975.collect_entries(),
+            "mother_history_before_1975": self.mother_history_before_1975.collect_entries(),
+            "mother_history_after_1975": self.mother_history_after_1975.collect_entries(),
             "family_status": self.family_status.text().strip(),
             "criminal_record": self.criminal_record.text().strip(),
             "party_union_status": self.party_union_status.text().strip(),

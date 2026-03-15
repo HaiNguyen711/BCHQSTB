@@ -1,9 +1,11 @@
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
 
 from config.settings import APP_NAME, MAIN_WINDOW_HEIGHT, MAIN_WINDOW_WIDTH
+from services.citizen_service import get_citizen_count
 from ui.citizens.citizen_management_widget import CitizenManagementWidget
 from ui.components.sidebar import Sidebar
 from ui.military.military_management_widget import MilitaryManagementWidget
+from ui.stats.stats_dashboard_widget import StatsDashboardWidget
 
 
 class PlaceholderPage(QWidget):
@@ -50,7 +52,7 @@ class MainWindow(QMainWindow):
 
         self.citizen_page = CitizenManagementWidget(self)
         self.military_page = MilitaryManagementWidget(self)
-        self.stats_page = PlaceholderPage('Thống kê', 'Module thống kê sẽ phát triển tiếp trên nền này.')
+        self.stats_page = StatsDashboardWidget(self)
         self.report_page = PlaceholderPage('Hồ sơ báo cáo', 'Module hồ sơ báo cáo sẽ phát triển tiếp trên nền này.')
 
         self.stack.addWidget(self.citizen_page)
@@ -61,6 +63,7 @@ class MainWindow(QMainWindow):
         root.addWidget(self.sidebar)
         root.addWidget(self.stack, 1)
 
+        self.refresh_sidebar_counts()
         self.show_citizen_page()
 
     def show_citizen_page(self):
@@ -73,6 +76,7 @@ class MainWindow(QMainWindow):
         self.sidebar.set_active('military')
 
     def show_stats_page(self):
+        self.stats_page.load_data()
         self.stack.setCurrentWidget(self.stats_page)
         self.sidebar.set_active('stats')
 
@@ -83,3 +87,8 @@ class MainWindow(QMainWindow):
     def refresh_related_pages(self):
         self.citizen_page.load_data()
         self.military_page.load_data()
+        self.stats_page.load_data()
+        self.refresh_sidebar_counts()
+
+    def refresh_sidebar_counts(self):
+        self.sidebar.set_citizen_count(get_citizen_count())

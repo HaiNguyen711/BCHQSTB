@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QMessageBox, QPushButton, QTableWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QMessageBox, QPushButton, QTableWidgetItem, QVBoxLayout, QWidget
 
+from services.citizen_import_service import import_citizens_from_excel
 from services.citizen_service import delete_citizen, get_all_citizens, search_citizens
 from ui.citizens.citizen_detail_window import CitizenDetailWindow
 from ui.citizens.citizen_form import CitizenForm
@@ -28,10 +29,20 @@ class CitizenManagementWidget(QWidget):
             self.open_add_form,
         )
 
+        action_row = QHBoxLayout()
+        action_row.setContentsMargins(0, 0, 0, 0)
+        action_row.addStretch()
+
+        self.import_button = QPushButton('Import from Excel')
+        self.import_button.setObjectName('secondaryButton')
+        self.import_button.clicked.connect(self.import_from_excel)
+        action_row.addWidget(self.import_button)
+
         self.table = CitizenTable()
         self.table.itemDoubleClicked.connect(self.open_detail)
 
         layout.addWidget(self.header)
+        layout.addLayout(action_row)
         layout.addWidget(self.table)
 
     def populate_table(self, citizens):
@@ -48,15 +59,13 @@ class CitizenManagementWidget(QWidget):
             action_widget = QWidget()
             action_layout = QHBoxLayout(action_widget)
             action_layout.setContentsMargins(0, 0, 0, 0)
-            action_layout.setSpacing(6)
+            action_layout.setSpacing(0)
 
-            edit_btn = QPushButton('✏')
             delete_btn = QPushButton('🗑')
-            edit_btn.clicked.connect(lambda _, data=citizen: self.edit_citizen(data))
             delete_btn.clicked.connect(lambda _, data=citizen: self.remove_citizen(data))
 
-            action_layout.addWidget(edit_btn)
             action_layout.addWidget(delete_btn)
+            action_layout.setAlignment(Qt.AlignCenter)
             self.table.setCellWidget(row, 6, action_widget)
 
     def make_item(self, text, alignment):
@@ -76,12 +85,6 @@ class CitizenManagementWidget(QWidget):
 
     def open_add_form(self):
         dialog = CitizenForm(parent=self)
-        if dialog.exec():
-            self.load_data()
-            self.parent().refresh_related_pages()
-
-    def edit_citizen(self, citizen):
-        dialog = CitizenForm(citizen, self)
         if dialog.exec():
             self.load_data()
             self.parent().refresh_related_pages()
@@ -107,3 +110,21 @@ class CitizenManagementWidget(QWidget):
         detail_window = CitizenDetailWindow(cccd_item.text())
         detail_window.show()
         self.detail_windows.append(detail_window)
+
+    def import_from_excel(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            'Chọn file Excel',
+            '',
+            'Excel Files (*.xlsx)',
+        )
+        if not file_path:
+            return
+
+        ok, message = import_citizens_from_excel(file_path)
+        if ok:
+            QMessageBox.information(self, 'Thành công', message)
+            self.load_data()
+            self.parent().refresh_related_pages()
+        else:
+            QMessageBox.warning(self, 'Lỗi', message)

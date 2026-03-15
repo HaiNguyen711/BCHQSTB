@@ -64,6 +64,9 @@ class Sidebar(QFrame):
 
         self.set_active('citizen')
 
+    def set_citizen_count(self, count):
+        self.btn_citizen.setText(f'  Quản lý công dân ({count})')
+
     def set_active(self, page_name):
         buttons = {
             'citizen': self.btn_citizen,

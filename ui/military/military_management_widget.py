@@ -1,20 +1,7 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QHBoxLayout,
-    QPushButton,
-    QTableWidgetItem,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget
 
-from services.military_service import (
-    STATUS_LABELS,
-    STATUS_OPTIONS,
-    get_all_military_records,
-    get_military_record,
-    search_military_records,
-)
+from services.military_service import STATUS_OPTIONS, get_all_military_records, get_military_record, search_military_records
 from ui.components.header import Header
 from ui.components.table_widget import MilitaryTable
 from ui.military.military_update_dialog import MilitaryUpdateDialog
@@ -44,6 +31,7 @@ class MilitaryManagementWidget(QWidget):
         self.status_tabs = QTabWidget()
         for status_code, status_label in STATUS_OPTIONS:
             table = MilitaryTable()
+            table.itemDoubleClicked.connect(self.open_record_from_item)
             self.status_tables[status_code] = table
             self.status_tabs.addTab(table, status_label)
 
@@ -54,25 +42,6 @@ class MilitaryManagementWidget(QWidget):
         item = QTableWidgetItem(str(text))
         item.setTextAlignment(alignment)
         return item
-
-    def get_active_table(self):
-        status_code = self.status_tabs.currentWidget().property('status_code')
-        if status_code:
-            return self.status_tables.get(status_code)
-        return self.status_tabs.currentWidget()
-
-    def build_action_widget(self, row):
-        action_widget = QWidget()
-        action_layout = QHBoxLayout(action_widget)
-        action_layout.setContentsMargins(0, 0, 0, 0)
-        action_layout.setSpacing(6)
-
-        edit_btn = QPushButton('Sửa')
-        edit_btn.setObjectName('secondaryButton')
-        edit_btn.clicked.connect(lambda _, data=row: self.open_dialog(data))
-        action_layout.addWidget(edit_btn)
-        action_layout.addStretch()
-        return action_widget
 
     def populate_tables(self, rows):
         self.records_by_status = {code: [] for code, _ in STATUS_OPTIONS}
@@ -93,7 +62,6 @@ class MilitaryManagementWidget(QWidget):
                 table.setItem(row_index, 3, self.make_item(row.get('service_status_label', ''), Qt.AlignCenter))
                 table.setItem(row_index, 4, self.make_item(row.get('enlistment_date', ''), Qt.AlignCenter))
                 table.setItem(row_index, 5, self.make_item(row.get('unit_name', ''), Qt.AlignVCenter | Qt.AlignLeft))
-                table.setCellWidget(row_index, 6, self.build_action_widget(row))
 
             self.status_tabs.setTabText(index, f'{status_label} ({len(status_rows)})')
 
@@ -119,6 +87,22 @@ class MilitaryManagementWidget(QWidget):
             return
 
         cccd_item = table.item(row, 0)
+        if not cccd_item:
+            return
+
+        record = get_military_record(cccd_item.text())
+        if record:
+            self.open_dialog(record)
+
+    def open_record_from_item(self, item):
+        if not item:
+            return
+
+        table = item.tableWidget()
+        if table is None:
+            return
+
+        cccd_item = table.item(item.row(), 0)
         if not cccd_item:
             return
 

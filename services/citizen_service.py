@@ -2,7 +2,7 @@ import json
 from datetime import date, datetime
 
 from config.database import get_connection
-from config.settings import DB_NAME
+from config.settings import CITIZEN_IMAGES_DIR, DB_NAME
 
 DISPLAY_DATE_FORMAT = '%d-%m-%Y'
 DB_DATE_FORMAT = '%Y-%m-%d'
@@ -197,6 +197,37 @@ def normalize_personal_situation_stages(value):
     return normalize_personal_situation_stages(parsed)
 
 
+def normalize_history_entries(value):
+    if isinstance(value, list):
+        normalized = []
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            from_year = normalize_text(item.get('from_year'))
+            to_year = normalize_text(item.get('to_year'))
+            content = normalize_text(item.get('content'))
+            if from_year or to_year or content:
+                normalized.append(
+                    {
+                        'from_year': from_year,
+                        'to_year': to_year,
+                        'content': content,
+                    }
+                )
+        return normalized
+
+    raw_value = normalize_text(value)
+    if not raw_value:
+        return []
+
+    try:
+        parsed = json.loads(raw_value)
+    except (TypeError, ValueError):
+        return [{'from_year': '', 'to_year': '', 'content': raw_value}]
+
+    return normalize_history_entries(parsed)
+
+
 def create_citizen(data):
     conn = get_connection()
     cursor = conn.cursor()
@@ -324,6 +355,58 @@ def update_citizen(data):
         conn.close()
 
 
+def update_citizen_identity(old_cccd, new_cccd, date_of_birth, gender, phone, ward, photo_path=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        old_cccd = normalize_text(old_cccd)
+        new_cccd = normalize_text(new_cccd)
+        date_of_birth = to_db_date(date_of_birth)
+        gender = normalize_text(gender)
+        phone = normalize_text(phone)
+        ward = normalize_text(ward)
+        photo_path = normalize_text(photo_path)
+
+        if not old_cccd or not new_cccd:
+            return False, 'CCCD không được để trống.'
+
+        if old_cccd != new_cccd:
+            cursor.execute('SELECT COUNT(*) FROM citizens WHERE cccd = %s', (new_cccd,))
+            existing_row = cursor.fetchone()
+            if existing_row and int(existing_row[0]) > 0:
+                return False, 'CCCD mới đã tồn tại trong hệ thống.'
+
+        citizen_update_query = '''
+            UPDATE citizens
+            SET cccd = %s,
+                date_of_birth = %s,
+                gender = %s,
+                phone = %s,
+                ward = %s
+        '''
+        citizen_params = [new_cccd, date_of_birth, gender, phone, ward]
+        if photo_path:
+            citizen_update_query += ', photo_path = %s'
+            citizen_params.append(photo_path)
+        citizen_update_query += ' WHERE cccd = %s'
+        citizen_params.append(old_cccd)
+
+        cursor.execute(citizen_update_query, tuple(citizen_params))
+        cursor.execute('UPDATE citizen_backgrounds SET citizen_cccd = %s WHERE citizen_cccd = %s', (new_cccd, old_cccd))
+        cursor.execute('UPDATE citizen_health SET citizen_cccd = %s WHERE citizen_cccd = %s', (new_cccd, old_cccd))
+        cursor.execute('UPDATE military_service SET citizen_cccd = %s WHERE citizen_cccd = %s', (new_cccd, old_cccd))
+
+        conn.commit()
+        return True, 'Đã cập nhật thông tin cá nhân.'
+    except Exception as exc:
+        conn.rollback()
+        return False, str(exc)
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def delete_citizen(cccd):
     conn = get_connection()
     cursor = conn.cursor()
@@ -360,6 +443,19 @@ def get_all_citizens():
         )
         rows = cursor.fetchall()
         return [format_citizen_row(row) for row in rows]
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_citizen_count():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('SELECT COUNT(*) FROM citizens')
+        row = cursor.fetchone()
+        return int(row[0]) if row else 0
     finally:
         cursor.close()
         conn.close()
@@ -514,6 +610,10 @@ def get_citizen_background(cccd):
             return {}
         row['siblings'] = normalize_siblings(row.get('siblings_json'))
         row['personal_situation_stages'] = normalize_personal_situation_stages(row.get('personal_situation'))
+        row['father_history_before_1975_entries'] = normalize_history_entries(row.get('father_history_before_1975'))
+        row['father_history_after_1975_entries'] = normalize_history_entries(row.get('father_history_after_1975'))
+        row['mother_history_before_1975_entries'] = normalize_history_entries(row.get('mother_history_before_1975'))
+        row['mother_history_after_1975_entries'] = normalize_history_entries(row.get('mother_history_after_1975'))
         return row
     finally:
         cursor.close()
@@ -603,6 +703,10 @@ def get_citizen_detail(cccd):
         if background:
             background['siblings'] = normalize_siblings(background.get('siblings_json'))
             background['personal_situation_stages'] = normalize_personal_situation_stages(background.get('personal_situation'))
+            background['father_history_before_1975_entries'] = normalize_history_entries(background.get('father_history_before_1975'))
+            background['father_history_after_1975_entries'] = normalize_history_entries(background.get('father_history_after_1975'))
+            background['mother_history_before_1975_entries'] = normalize_history_entries(background.get('mother_history_before_1975'))
+            background['mother_history_after_1975_entries'] = normalize_history_entries(background.get('mother_history_after_1975'))
 
         cursor.execute("SELECT * FROM citizen_health WHERE citizen_cccd = %s", (cccd,))
         health = cursor.fetchone()
@@ -766,10 +870,10 @@ def update_citizen_detail(data):
                 normalize_text(data.get("father_status")),
                 normalize_text(data.get("mother_birth_date")),
                 normalize_text(data.get("mother_status")),
-                normalize_text(data.get("father_history_before_1975")),
-                normalize_text(data.get("father_history_after_1975")),
-                normalize_text(data.get("mother_history_before_1975")),
-                normalize_text(data.get("mother_history_after_1975")),
+                json.dumps(normalize_history_entries(data.get("father_history_before_1975")), ensure_ascii=False),
+                json.dumps(normalize_history_entries(data.get("father_history_after_1975")), ensure_ascii=False),
+                json.dumps(normalize_history_entries(data.get("mother_history_before_1975")), ensure_ascii=False),
+                json.dumps(normalize_history_entries(data.get("mother_history_after_1975")), ensure_ascii=False),
                 json.dumps(normalize_siblings(data.get("siblings")), ensure_ascii=False),
 
                 normalize_text(data.get("spouse_info")),
