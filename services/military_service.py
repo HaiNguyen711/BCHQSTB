@@ -6,14 +6,48 @@ STATUS_OPTIONS = [
     ('KHAM_SO_TUYEN', 'Khám sơ tuyển'),
     ('KHAM_SUC_KHOE', 'Khám sức khỏe'),
     ('DU_DIEU_KIEN', 'Đủ điều kiện'),
-    ('TAM_HOAN', 'Tạm hoãn'),
-    ('MIEN_NVQS', 'Miễn NVQS'),
     ('CHO_NHAP_NGU', 'Chờ nhập ngũ'),
     ('DA_NHAP_NGU', 'Đã nhập ngũ'),
     ('DA_XUAT_NGU', 'Đã xuất ngũ'),
+    ('TAM_HOAN', 'Tạm hoãn'),
+    ('MIEN_NVQS', 'Miễn'),
 ]
 
 STATUS_LABELS = dict(STATUS_OPTIONS)
+MAIN_STATUS_FLOW = [
+    'CHUA_GOI',
+    'KHAM_SO_TUYEN',
+    'KHAM_SUC_KHOE',
+    'DU_DIEU_KIEN',
+    'CHO_NHAP_NGU',
+    'DA_NHAP_NGU',
+    'DA_XUAT_NGU',
+]
+SPECIAL_STATUS_CODES = ['TAM_HOAN', 'MIEN_NVQS']
+
+
+def get_allowed_status_codes(current_status):
+    current_status = normalize_text(current_status) or 'CHUA_GOI'
+
+    if current_status == 'MIEN_NVQS':
+        return ['MIEN_NVQS']
+
+    if current_status == 'TAM_HOAN':
+        return MAIN_STATUS_FLOW + SPECIAL_STATUS_CODES
+
+    if current_status in MAIN_STATUS_FLOW:
+        current_index = MAIN_STATUS_FLOW.index(current_status)
+        allowed = [current_status]
+        if current_index + 1 < len(MAIN_STATUS_FLOW):
+            allowed.append(MAIN_STATUS_FLOW[current_index + 1])
+        allowed.extend(SPECIAL_STATUS_CODES)
+        return allowed
+
+    return ['CHUA_GOI', 'TAM_HOAN', 'MIEN_NVQS']
+
+
+def is_valid_status_transition(current_status, next_status):
+    return normalize_text(next_status) in get_allowed_status_codes(current_status)
 
 
 def ensure_military_records():
@@ -191,6 +225,25 @@ def save_military_record(data):
             'position_name': normalize_text(data.get('position_name')),
             'note': normalize_text(data.get('note')),
         }
+
+        cursor.execute(
+            '''
+            SELECT service_status
+            FROM military_service
+            WHERE citizen_cccd = %s
+            LIMIT 1
+            ''',
+            (citizen_cccd,),
+        )
+        current_row = cursor.fetchone()
+        current_status = current_row[0] if current_row else 'CHUA_GOI'
+
+        if not is_valid_status_transition(current_status, payload['service_status']):
+            allowed_labels = [STATUS_LABELS.get(code, code) for code in get_allowed_status_codes(current_status)]
+            return False, 'Chỉ được chuyển sang bước kế tiếp hoặc sang Tạm hoãn/Miễn. Cho phép: {}.'.format(', '.join(allowed_labels))
+
+        if payload['service_status'] in ('TAM_HOAN', 'MIEN_NVQS') and not payload['note']:
+            return False, 'Khi chuyển sang Tạm hoãn hoặc Miễn, bắt buộc phải ghi lý do.'
 
         cursor.execute(
             '''

@@ -149,7 +149,18 @@ def normalize_siblings(value):
 
 
 def normalize_personal_situation_stages(value):
-    valid_stages = {"Thơ ấu", "Cấp 1", "Cấp 2", "Cấp 3", "Đại học", "Sau đại học"}
+    stage_aliases = {
+        'Thơ ấu': 'Lúc nhỏ',
+        'Lúc nhỏ': 'Lúc nhỏ',
+        'Cấp 1': 'Cấp 1',
+        'Cấp 2': 'Cấp 2',
+        'Cấp 3': 'Cấp 3',
+        'Đại học': 'ĐH-CĐ',
+        'ĐH-CĐ': 'ĐH-CĐ',
+        'Sau đại học': 'Sau đại học',
+        'Đi làm': 'Đi làm',
+        'Khác': 'Khác',
+    }
 
     if isinstance(value, list):
         normalized = []
@@ -157,13 +168,19 @@ def normalize_personal_situation_stages(value):
             if not isinstance(item, dict):
                 continue
 
-            stage = normalize_text(item.get('stage'))
+            stage = stage_aliases.get(normalize_text(item.get('stage')))
+            from_year = normalize_text(item.get('from_year'))
+            to_year = normalize_text(item.get('to_year'))
             content = normalize_text(item.get('content'))
-            if stage in valid_stages:
+            workplace = normalize_text(item.get('workplace'))
+            if stage:
                 normalized.append(
                     {
                         'stage': stage,
+                        'from_year': from_year,
+                        'to_year': to_year,
                         'content': content,
+                        'workplace': workplace,
                     }
                 )
         return normalized

@@ -1,6 +1,10 @@
 from PySide6.QtWidgets import QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QTextEdit, QVBoxLayout
 
-from services.military_service import STATUS_OPTIONS, save_military_record
+from services.military_service import (
+    STATUS_LABELS,
+    get_allowed_status_codes,
+    save_military_record,
+)
 
 
 class MilitaryUpdateDialog(QDialog):
@@ -30,8 +34,8 @@ class MilitaryUpdateDialog(QDialog):
         self.full_name.setReadOnly(True)
 
         self.service_status = QComboBox()
-        for code, label in STATUS_OPTIONS:
-            self.service_status.addItem(label, code)
+        self.status_hint = QLabel('')
+        self.status_hint.setObjectName('mutedLabel')
 
         self.health_check_date = QLineEdit()
         self.health_check_date.setPlaceholderText('dd-mm-yyyy')
@@ -43,10 +47,12 @@ class MilitaryUpdateDialog(QDialog):
         self.position_name = QLineEdit()
         self.note = QTextEdit()
         self.note.setFixedHeight(90)
+        self.service_status.currentIndexChanged.connect(self.update_reason_requirement)
 
         form.addRow('CCCD', self.cccd)
         form.addRow('Họ tên', self.full_name)
         form.addRow('Trạng thái', self.service_status)
+        form.addRow('', self.status_hint)
         form.addRow('Ngày khám', self.health_check_date)
         form.addRow('Kết quả khám', self.health_result)
         form.addRow('Ngày nhập ngũ', self.enlistment_date)
@@ -84,20 +90,53 @@ class MilitaryUpdateDialog(QDialog):
         self.note.setPlainText(self.record.get('note', ''))
 
         current_status = self.record.get('service_status', 'CHUA_GOI')
+        self.service_status.clear()
+        for code in get_allowed_status_codes(current_status):
+            self.service_status.addItem(STATUS_LABELS.get(code, code), code)
+
         index = self.service_status.findData(current_status)
         if index >= 0:
             self.service_status.setCurrentIndex(index)
 
+        allowed_labels = [STATUS_LABELS.get(code, code) for code in get_allowed_status_codes(current_status)]
+        self.status_hint.setText(
+            'Chỉ được giữ nguyên, chuyển sang bước kế tiếp hoặc sang Tạm hoãn/Miễn. '
+            f'Cho phép: {", ".join(allowed_labels)}'
+        )
+        self.update_reason_requirement()
+
+    def update_reason_requirement(self):
+        selected_status = self.service_status.currentData()
+        requires_reason = selected_status in ('TAM_HOAN', 'MIEN_NVQS')
+
+        if requires_reason:
+            self.note.setPlaceholderText('Bắt buộc nhập lý do tạm hoãn hoặc miễn')
+            self.status_hint.setText(
+                self.status_hint.text() + ' Lưu ý: chọn Tạm hoãn hoặc Miễn thì phải ghi lý do.'
+                if 'phải ghi lý do' not in self.status_hint.text()
+                else self.status_hint.text()
+            )
+        else:
+            self.note.setPlaceholderText('Ghi chú thêm nếu cần')
+            self.status_hint.setText(self.status_hint.text().replace(' Lưu ý: chọn Tạm hoãn hoặc Miễn thì phải ghi lý do.', ''))
+
     def save_data(self):
+        selected_status = self.service_status.currentData()
+        note = self.note.toPlainText().strip()
+        if selected_status in ('TAM_HOAN', 'MIEN_NVQS') and not note:
+            QMessageBox.warning(self, 'Lỗi', 'Khi chuyển sang Tạm hoãn hoặc Miễn, bạn phải nhập lý do.')
+            self.note.setFocus()
+            return
+
         data = {
             'citizen_cccd': self.cccd.text().strip(),
-            'service_status': self.service_status.currentData(),
+            'service_status': selected_status,
             'health_check_date': self.health_check_date.text().strip(),
             'health_result': self.health_result.text().strip(),
             'enlistment_date': self.enlistment_date.text().strip(),
             'unit_name': self.unit_name.text().strip(),
             'position_name': self.position_name.text().strip(),
-            'note': self.note.toPlainText().strip(),
+            'note': note,
         }
 
         ok, message = save_military_record(data)

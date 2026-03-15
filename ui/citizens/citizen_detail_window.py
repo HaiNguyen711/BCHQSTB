@@ -26,13 +26,15 @@ from services.citizen_service import get_citizen_detail, update_citizen_detail
 
 
 class CitizenDetailWindow(QWidget):
-    PERSONAL_STAGE_ORDER = [
-        "Thơ ấu",
+    PERSONAL_STAGE_OPTIONS = [
+        "Lúc nhỏ",
         "Cấp 1",
         "Cấp 2",
         "Cấp 3",
-        "Đại học",
+        "ĐH-CĐ",
         "Sau đại học",
+        "Đi làm",
+        "Khác",
     ]
 
     def __init__(self, cccd):
@@ -168,22 +170,6 @@ class CitizenDetailWindow(QWidget):
         page_layout.setContentsMargins(6, 6, 6, 6)
         page_layout.setSpacing(14)
 
-        card = QFrame()
-        card.setObjectName("infoCard")
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(16, 16, 16, 16)
-        card_layout.setSpacing(12)
-
-        section = QLabel("Thông tin cá nhân")
-        section.setObjectName("sectionTitle")
-        card_layout.addWidget(section)
-
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(16)
-        grid.setVerticalSpacing(12)
-        grid.setColumnStretch(1, 1)
-        grid.setColumnStretch(3, 1)
-
         self.address = QLineEdit()
         self.neighborhood = QLineEdit()
         self.education_level = QLineEdit()
@@ -202,61 +188,11 @@ class CitizenDetailWindow(QWidget):
         self.party_join_date = QLineEdit()
         self.union_join_date = QLineEdit()
         self.workplace_or_school = QLineEdit()
-        fields = [
-            ("Địa chỉ", self.address, "Khu phố / tổ", self.neighborhood),
-            ("Trình độ học vấn", self.education_level, "Nghề nghiệp", self.occupation),
-            ("Tôn giáo", self.religion, "Dân tộc", self.ethnicity),
-            ("Nơi đăng kí khai sinh", self.birth_registration_place, "Quê quán", self.hometown),
-            ("Quốc tịch", self.nationality, "Nơi thường trú gia đình", self.family_permanent_residence),
-            ("Nơi ở hiện tại", self.current_residence, "Thành phần gia đình", self.family_component),
-            ("Trình độ GD phổ thông", self.general_education_level, "Trình độ đào tạo", self.training_level),
-            ("Chuyên ngành đào tạo", self.training_major, "Ngày vào Đảng", self.party_join_date),
-            ("Ngày vào Đoàn", self.union_join_date, "Nơi làm việc / học tập", self.workplace_or_school),
-        ]
 
-        for row, (label1, widget1, label2, widget2) in enumerate(fields):
-            grid.addWidget(self.make_field_label(label1), row, 0)
-            grid.addWidget(widget1, row, 1)
-            grid.addWidget(self.make_field_label(label2), row, 2)
-            grid.addWidget(widget2, row, 3)
-
-        card_layout.addLayout(grid)
-        page_layout.addWidget(card)
-
-        personal_situation_card = QFrame()
-        personal_situation_card.setObjectName("infoCard")
-        personal_situation_layout = QVBoxLayout(personal_situation_card)
-        personal_situation_layout.setContentsMargins(16, 16, 16, 16)
-        personal_situation_layout.setSpacing(12)
-
-        personal_situation_header = QHBoxLayout()
-        personal_situation_header.setContentsMargins(0, 0, 0, 0)
-
-        personal_situation_title = QLabel("Lý lịch bản thân")
-        personal_situation_title.setObjectName("sectionTitle")
-        self.add_personal_stage_button = QPushButton("Thêm cấp")
-        self.add_personal_stage_button.setObjectName("secondaryButton")
-        self.add_personal_stage_button.clicked.connect(self.add_next_personal_stage)
-
-        personal_situation_header.addWidget(personal_situation_title)
-        personal_situation_header.addStretch()
-        personal_situation_header.addWidget(self.add_personal_stage_button)
-        personal_situation_layout.addLayout(personal_situation_header)
-
-        self.personal_stage_hint = QLabel(
-            "Thêm các giai đoạn theo thứ tự: Thơ ấu -> Cấp 1 -> Cấp 2 -> Cấp 3 -> Đại học -> Sau đại học"
-        )
-        self.personal_stage_hint.setObjectName("detailFieldLabel")
-        self.personal_stage_hint.setWordWrap(True)
-        personal_situation_layout.addWidget(self.personal_stage_hint)
-
-        self.personal_stage_container = QWidget()
-        self.personal_stage_layout = QVBoxLayout(self.personal_stage_container)
-        self.personal_stage_layout.setContentsMargins(0, 0, 0, 0)
-        self.personal_stage_layout.setSpacing(10)
-        personal_situation_layout.addWidget(self.personal_stage_container)
-
-        page_layout.addWidget(personal_situation_card)
+        personal_tabs = QTabWidget()
+        personal_tabs.addTab(self.build_personal_info_page(), "Thông tin")
+        personal_tabs.addTab(self.build_personal_history_page(), "Lý lịch")
+        page_layout.addWidget(personal_tabs)
         page_layout.addStretch()
 
         scroll.setWidget(page)
@@ -276,16 +212,6 @@ class CitizenDetailWindow(QWidget):
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(6, 6, 6, 6)
         page_layout.setSpacing(14)
-
-        parent_card = QFrame()
-        parent_card.setObjectName("infoCard")
-        parent_layout = QVBoxLayout(parent_card)
-        parent_layout.setContentsMargins(16, 16, 16, 16)
-        parent_layout.setSpacing(12)
-
-        parent_title = QLabel("Thông tin cha mẹ")
-        parent_title.setObjectName("sectionTitle")
-        parent_layout.addWidget(parent_title)
 
         self.father_name = QLineEdit()
         self.father_birth_date = QLineEdit()
@@ -318,6 +244,129 @@ class CitizenDetailWindow(QWidget):
         ):
             editor.setMinimumHeight(90)
 
+        self.family_status = QLineEdit()
+        self.criminal_record = QLineEdit()
+        self.party_union_status = QLineEdit()
+        self.spouse_info = QLineEdit()
+        self.children_info = QLineEdit()
+        self.total_male_children = QLineEdit()
+        self.total_female_children = QLineEdit()
+        self.birth_order = QLineEdit()
+
+        family_tabs = QTabWidget()
+        family_tabs.addTab(self.build_parent_info_page(), "Thông tin cha mẹ")
+        family_tabs.addTab(self.build_family_status_page(), "Tình hình gia đình")
+        page_layout.addWidget(family_tabs)
+        page_layout.addStretch()
+
+        scroll.setWidget(page)
+        outer.addWidget(scroll)
+        return container
+
+    def build_personal_info_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+
+        card = QFrame()
+        card.setObjectName("infoCard")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(16, 16, 16, 16)
+        card_layout.setSpacing(12)
+
+        section = QLabel("Thông tin cá nhân")
+        section.setObjectName("sectionTitle")
+        card_layout.addWidget(section)
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(16)
+        grid.setVerticalSpacing(12)
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(3, 1)
+
+        fields = [
+            ("Địa chỉ", self.address, "Khu phố / tổ", self.neighborhood),
+            ("Trình độ học vấn", self.education_level, "Nghề nghiệp", self.occupation),
+            ("Tôn giáo", self.religion, "Dân tộc", self.ethnicity),
+            ("Nơi đăng kí khai sinh", self.birth_registration_place, "Quê quán", self.hometown),
+            ("Quốc tịch", self.nationality, "Nơi thường trú gia đình", self.family_permanent_residence),
+            ("Nơi ở hiện tại", self.current_residence, "Thành phần gia đình", self.family_component),
+            ("Trình độ GD phổ thông", self.general_education_level, "Trình độ đào tạo", self.training_level),
+            ("Chuyên ngành đào tạo", self.training_major, "Ngày vào Đảng", self.party_join_date),
+            ("Ngày vào Đoàn", self.union_join_date, "Nơi làm việc / học tập", self.workplace_or_school),
+        ]
+
+        for row, (label1, widget1, label2, widget2) in enumerate(fields):
+            grid.addWidget(self.make_field_label(label1), row, 0)
+            grid.addWidget(widget1, row, 1)
+            grid.addWidget(self.make_field_label(label2), row, 2)
+            grid.addWidget(widget2, row, 3)
+
+        card_layout.addLayout(grid)
+        layout.addWidget(card)
+        layout.addStretch()
+        return page
+
+    def build_personal_history_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+
+        card = QFrame()
+        card.setObjectName("infoCard")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(16, 16, 16, 16)
+        card_layout.setSpacing(12)
+
+        header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+
+        title = QLabel("Lý lịch bản thân")
+        title.setObjectName("sectionTitle")
+        self.add_personal_stage_button = QPushButton("Thêm mốc")
+        self.add_personal_stage_button.setObjectName("secondaryButton")
+        self.add_personal_stage_button.clicked.connect(self.add_personal_stage_row)
+
+        header.addWidget(title)
+        header.addStretch()
+        header.addWidget(self.add_personal_stage_button)
+        card_layout.addLayout(header)
+
+        self.personal_stage_hint = QLabel(
+            "Thêm từng mốc học tập hoặc đi làm để dễ nhập tay và khớp khi nạp từ Excel."
+        )
+        self.personal_stage_hint.setObjectName("detailFieldLabel")
+        self.personal_stage_hint.setWordWrap(True)
+        card_layout.addWidget(self.personal_stage_hint)
+
+        self.personal_stage_container = QWidget()
+        self.personal_stage_layout = QVBoxLayout(self.personal_stage_container)
+        self.personal_stage_layout.setContentsMargins(0, 0, 0, 0)
+        self.personal_stage_layout.setSpacing(10)
+        card_layout.addWidget(self.personal_stage_container)
+
+        layout.addWidget(card)
+        layout.addStretch()
+        return page
+
+    def build_parent_info_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+
+        card = QFrame()
+        card.setObjectName("infoCard")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(16, 16, 16, 16)
+        card_layout.setSpacing(12)
+
+        title = QLabel("Thông tin cha mẹ")
+        title.setObjectName("sectionTitle")
+        card_layout.addWidget(title)
+
         parent_columns = QHBoxLayout()
         parent_columns.setContentsMargins(0, 0, 0, 0)
         parent_columns.setSpacing(16)
@@ -349,42 +398,43 @@ class CitizenDetailWindow(QWidget):
 
         parent_columns.addWidget(father_card, 1)
         parent_columns.addWidget(mother_card, 1)
-        parent_layout.addLayout(parent_columns)
+        card_layout.addLayout(parent_columns)
 
-        family_card = QFrame()
-        family_card.setObjectName("infoCard")
-        family_layout = QVBoxLayout(family_card)
-        family_layout.setContentsMargins(16, 16, 16, 16)
-        family_layout.setSpacing(12)
+        layout.addWidget(card)
+        layout.addStretch()
+        return page
 
-        family_header = QHBoxLayout()
-        family_header.setContentsMargins(0, 0, 0, 0)
+    def build_family_status_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
 
-        family_title = QLabel("Tình hình gia đình")
-        family_title.setObjectName("sectionTitle")
+        card = QFrame()
+        card.setObjectName("infoCard")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(16, 16, 16, 16)
+        card_layout.setSpacing(12)
+
+        header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+
+        title = QLabel("Tình hình gia đình")
+        title.setObjectName("sectionTitle")
         self.add_sibling_button = QPushButton("Thêm anh/chị/em")
         self.add_sibling_button.setObjectName("secondaryButton")
         self.add_sibling_button.clicked.connect(self.add_sibling_row)
 
-        family_header.addWidget(family_title)
-        family_header.addStretch()
-        family_header.addWidget(self.add_sibling_button)
-        family_layout.addLayout(family_header)
+        header.addWidget(title)
+        header.addStretch()
+        header.addWidget(self.add_sibling_button)
+        card_layout.addLayout(header)
 
-        self.family_status = QLineEdit()
-        self.criminal_record = QLineEdit()
-        self.party_union_status = QLineEdit()
-        self.spouse_info = QLineEdit()
-        self.children_info = QLineEdit()
-        self.total_male_children = QLineEdit()
-        self.total_female_children = QLineEdit()
-        self.birth_order = QLineEdit()
-
-        family_grid = QGridLayout()
-        family_grid.setHorizontalSpacing(16)
-        family_grid.setVerticalSpacing(12)
-        family_grid.setColumnStretch(1, 1)
-        family_grid.setColumnStretch(3, 1)
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(16)
+        grid.setVerticalSpacing(12)
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(3, 1)
 
         family_fields = [
             ("Tình trạng gia đình", self.family_status, "Tiền án tiền sự", self.criminal_record),
@@ -394,21 +444,17 @@ class CitizenDetailWindow(QWidget):
         ]
 
         for row, (label1, widget1, label2, widget2) in enumerate(family_fields):
-            family_grid.addWidget(self.make_field_label(label1), row, 0)
-            family_grid.addWidget(widget1, row, 1)
-            family_grid.addWidget(self.make_field_label(label2), row, 2)
-            family_grid.addWidget(widget2, row, 3)
+            grid.addWidget(self.make_field_label(label1), row, 0)
+            grid.addWidget(widget1, row, 1)
+            grid.addWidget(self.make_field_label(label2), row, 2)
+            grid.addWidget(widget2, row, 3)
 
-        family_layout.addLayout(family_grid)
-        family_layout.addWidget(self.build_siblings_section())
+        card_layout.addLayout(grid)
+        card_layout.addWidget(self.build_siblings_section())
 
-        page_layout.addWidget(parent_card)
-        page_layout.addWidget(family_card)
-        page_layout.addStretch()
-
-        scroll.setWidget(page)
-        outer.addWidget(scroll)
-        return container
+        layout.addWidget(card)
+        layout.addStretch()
+        return page
 
     def build_parent_side(self, title_text, fields):
         card = QFrame()
@@ -617,43 +663,54 @@ class CitizenDetailWindow(QWidget):
         if index >= 0:
             combo_box.setCurrentIndex(index)
 
-    def add_next_personal_stage(self, stage_data=None):
-        stage_name = None
-        if stage_data:
-            stage_name = stage_data.get("stage", "")
-        elif len(self.personal_stage_rows) < len(self.PERSONAL_STAGE_ORDER):
-            stage_name = self.PERSONAL_STAGE_ORDER[len(self.personal_stage_rows)]
+    def get_birth_year(self, date_text):
+        raw_value = (date_text or "").strip()
+        parts = raw_value.split("-")
+        if len(parts) == 3 and len(parts[-1]) == 4 and parts[-1].isdigit():
+            return parts[-1]
+        return ""
 
-        if not stage_name:
-            return
-
-        existing_stages = {row["stage"] for row in self.personal_stage_rows}
-        if stage_name in existing_stages:
-            return
-
+    def add_personal_stage_row(self, stage_data=None, allow_childhood=False):
+        stage_data = stage_data or {}
         row_card = QFrame()
         row_card.setObjectName("infoCard")
         row_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        title = QLabel(stage_name)
-        title.setObjectName("detailFieldLabel")
-        title.setFixedWidth(110)
-
         row_layout = QHBoxLayout(row_card)
         row_layout.setContentsMargins(14, 10, 14, 10)
         row_layout.setSpacing(10)
+
+        stage_input = QComboBox()
+        stage_options = list(self.PERSONAL_STAGE_OPTIONS)
+        if not allow_childhood and "Lúc nhỏ" in stage_options:
+            stage_options.remove("Lúc nhỏ")
+        stage_input.addItems(stage_options)
+        stage_input.setFixedWidth(120)
+        self.set_combo_text(stage_input, stage_data.get("stage", "") or "Cấp 1")
+
+        is_childhood_stage = stage_data.get("stage", "") == "Lúc nhỏ"
+
+        from_year_input = QLineEdit()
+        from_year_input.setPlaceholderText("Từ năm")
+        from_year_input.setFixedWidth(90)
+        from_year_input.setText(stage_data.get("from_year", "") if stage_data else "")
+
+        to_year_input = QLineEdit()
+        to_year_input.setPlaceholderText("Đến năm")
+        to_year_input.setFixedWidth(90)
+        to_year_input.setText(stage_data.get("to_year", "") if stage_data else "")
 
         remove_button = QPushButton("Xóa")
         remove_button.setObjectName("secondaryButton")
         remove_button.setFixedWidth(52)
 
         content_input = QLineEdit()
-        content_input.setPlaceholderText(
-            f"Ghi ngắn gọn tình hình ở giai đoạn {stage_name.lower()}"
-        )
+        content_input.setPlaceholderText("Trường học / công việc / ghi chú")
         content_input.setText(stage_data.get("content", "") if stage_data else "")
 
-        row_layout.addWidget(title)
+        row_layout.addWidget(stage_input)
+        row_layout.addWidget(from_year_input)
+        row_layout.addWidget(to_year_input)
         row_layout.addWidget(content_input, 1)
         row_layout.addWidget(remove_button)
 
@@ -661,18 +718,18 @@ class CitizenDetailWindow(QWidget):
 
         row_info = {
             "card": row_card,
-            "stage": stage_name,
-            "title": title,
+            "stage": stage_input,
+            "from_year": from_year_input,
+            "to_year": to_year_input,
             "content": content_input,
             "remove_button": remove_button,
         }
+        if is_childhood_stage:
+            stage_input.setEnabled(False)
+            from_year_input.setReadOnly(True)
+            remove_button.setVisible(False)
         self.personal_stage_rows.append(row_info)
-        self.personal_stage_rows.sort(
-            key=lambda row: self.PERSONAL_STAGE_ORDER.index(row["stage"])
-        )
-        self.rebuild_personal_stage_layout()
         remove_button.clicked.connect(lambda: self.remove_personal_stage(row_info))
-        self.update_personal_stage_button_state()
 
     def remove_personal_stage(self, row_info):
         if row_info not in self.personal_stage_rows:
@@ -680,49 +737,47 @@ class CitizenDetailWindow(QWidget):
 
         self.personal_stage_rows.remove(row_info)
         row_info["card"].deleteLater()
-        self.update_personal_stage_button_state()
-
-    def rebuild_personal_stage_layout(self):
-        for row_info in self.personal_stage_rows:
-            self.personal_stage_layout.removeWidget(row_info["card"])
-        for row_info in self.personal_stage_rows:
-            self.personal_stage_layout.addWidget(row_info["card"])
 
     def clear_personal_stages(self):
         for row_info in self.personal_stage_rows:
             row_info["card"].deleteLater()
         self.personal_stage_rows = []
-        self.update_personal_stage_button_state()
 
     def load_personal_stages(self, stages):
         self.clear_personal_stages()
+        childhood_stage = None
         if isinstance(stages, list):
-            ordered = sorted(
-                stages,
-                key=lambda item: self.PERSONAL_STAGE_ORDER.index(item.get("stage"))
-                if item.get("stage") in self.PERSONAL_STAGE_ORDER else len(self.PERSONAL_STAGE_ORDER),
-            )
-            for stage in ordered:
-                self.add_next_personal_stage(stage)
-        self.update_personal_stage_button_state()
+            for stage in stages:
+                if stage.get("stage") == "Lúc nhỏ":
+                    childhood_stage = dict(stage)
+                    continue
+                self.add_personal_stage_row(stage)
+        birth_year = self.get_birth_year(self.dob_label.text().replace("Ngày sinh:", "").strip())
+        childhood_data = childhood_stage or {"stage": "Lúc nhỏ"}
+        childhood_data["stage"] = "Lúc nhỏ"
+        childhood_data["from_year"] = birth_year
+        self.add_personal_stage_row(childhood_data, allow_childhood=True)
+        self.personal_stage_layout.removeWidget(self.personal_stage_rows[-1]["card"])
+        self.personal_stage_layout.insertWidget(0, self.personal_stage_rows[-1]["card"])
+        self.personal_stage_rows.insert(0, self.personal_stage_rows.pop())
 
     def collect_personal_stages(self):
         stages = []
         for row_info in self.personal_stage_rows:
+            stage_name = row_info["stage"].currentText().strip()
+            from_year = row_info["from_year"].text().strip()
+            to_year = row_info["to_year"].text().strip()
             content = row_info["content"].text().strip()
-            if content:
+            if stage_name or from_year or to_year or content:
                 stages.append(
                     {
-                        "stage": row_info["stage"],
+                        "stage": stage_name,
+                        "from_year": from_year,
+                        "to_year": to_year,
                         "content": content,
                     }
                 )
         return stages
-
-    def update_personal_stage_button_state(self):
-        self.add_personal_stage_button.setEnabled(
-            len(self.personal_stage_rows) < len(self.PERSONAL_STAGE_ORDER)
-        )
 
     def load_data(self):
         data = get_citizen_detail(self.cccd)
