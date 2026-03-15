@@ -1,8 +1,25 @@
 import os
+import sys
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ASSETS_DIR = os.path.join(BASE_DIR, 'assets')
-IMAGES_DIR = os.path.join(ASSETS_DIR, 'images')
+
+def get_app_dir():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def get_resource_dir():
+    if getattr(sys, 'frozen', False):
+        return getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+APP_DIR = get_app_dir()
+BASE_DIR = APP_DIR
+RESOURCE_DIR = get_resource_dir()
+ASSETS_DIR = os.path.join(RESOURCE_DIR, 'assets')
+DATA_ASSETS_DIR = os.path.join(APP_DIR, 'assets')
+IMAGES_DIR = os.path.join(DATA_ASSETS_DIR, 'images')
 CITIZEN_IMAGES_DIR = os.path.join(IMAGES_DIR, 'citizens')
 STYLESHEET_PATH = os.path.join(ASSETS_DIR, 'style.qss')
 

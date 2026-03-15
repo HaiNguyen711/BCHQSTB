@@ -9,3 +9,7 @@ __pycache__/
 code.zip
 src.zip
 config/db_connection.json
+build/
+dist/
+dist_fixed/
+dist_fixed2/

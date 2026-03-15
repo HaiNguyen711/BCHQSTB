@@ -1,13 +1,21 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget
 
-from services.military_service import STATUS_OPTIONS, get_all_military_records, get_military_record, search_military_records
+from services.military_service import (
+    STATUS_OPTIONS,
+    get_military_record,
+    get_military_records_limited,
+    get_military_status_counts,
+    search_military_records,
+)
 from ui.components.header import Header
 from ui.components.table_widget import MilitaryTable
 from ui.military.military_update_dialog import MilitaryUpdateDialog
 
 
 class MilitaryManagementWidget(QWidget):
+    DEFAULT_VISIBLE_PER_STATUS = 100
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.status_tables = {}
@@ -35,7 +43,12 @@ class MilitaryManagementWidget(QWidget):
             self.status_tables[status_code] = table
             self.status_tabs.addTab(table, status_label)
 
+        self.info_label = QLabel()
+        self.info_label.setStyleSheet('color: #5F6C8C;')
+        self.info_label.setWordWrap(True)
+
         layout.addWidget(self.header)
+        layout.addWidget(self.info_label)
         layout.addWidget(self.status_tabs)
 
     def make_item(self, text, alignment):
@@ -43,11 +56,13 @@ class MilitaryManagementWidget(QWidget):
         item.setTextAlignment(alignment)
         return item
 
-    def populate_tables(self, rows):
+    def populate_tables(self, rows, counts=None):
         self.records_by_status = {code: [] for code, _ in STATUS_OPTIONS}
         for row in rows:
             status_code = row.get('service_status') or 'CHUA_GOI'
             self.records_by_status.setdefault(status_code, []).append(row)
+
+        counts = counts or {}
 
         for index, (status_code, status_label) in enumerate(STATUS_OPTIONS):
             table = self.status_tables[status_code]
@@ -63,17 +78,30 @@ class MilitaryManagementWidget(QWidget):
                 table.setItem(row_index, 4, self.make_item(row.get('enlistment_date', ''), Qt.AlignCenter))
                 table.setItem(row_index, 5, self.make_item(row.get('unit_name', ''), Qt.AlignVCenter | Qt.AlignLeft))
 
-            self.status_tabs.setTabText(index, f'{status_label} ({len(status_rows)})')
+            total_count = counts.get(status_code, len(status_rows))
+            self.status_tabs.setTabText(index, f'{status_label} ({total_count})')
 
     def load_data(self):
-        self.populate_tables(get_all_military_records())
+        self.info_label.setText(
+            f'Đang hiển thị tối đa {self.DEFAULT_VISIBLE_PER_STATUS} hồ sơ mỗi trạng thái để mở trang nhanh hơn. '
+            'Dùng ô tìm kiếm để tra toàn bộ dữ liệu.'
+        )
+        self.populate_tables(
+            get_military_records_limited(self.DEFAULT_VISIBLE_PER_STATUS),
+            get_military_status_counts(),
+        )
 
     def refresh(self):
         self.load_data()
 
     def perform_search(self):
         keyword = self.header.search.text().strip()
-        self.populate_tables(search_military_records(keyword))
+        if keyword:
+            self.info_label.setText(f'Kết quả tìm kiếm cho: "{keyword}"')
+            self.populate_tables(search_military_records(keyword))
+            return
+
+        self.load_data()
 
     def open_dialog(self, record):
         dialog = MilitaryUpdateDialog(record, self)

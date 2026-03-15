@@ -2,6 +2,7 @@ import json
 import os
 
 import mysql.connector
+from mysql.connector import Error as MySQLError
 
 from config.settings import (
     BASE_DIR,
@@ -99,16 +100,50 @@ def test_connection():
     conn.close()
 
 
+def _build_connection_kwargs(include_auth_plugin=True, use_pure=DB_USE_PURE):
+    kwargs = {
+        "host": _runtime_host,
+        "port": _runtime_port,
+        "user": DB_USER,
+        "password": DB_PASSWORD,
+        "database": _runtime_name,
+    }
+    if use_pure is not None:
+        kwargs["use_pure"] = use_pure
+    if include_auth_plugin and DB_AUTH_PLUGIN:
+        kwargs["auth_plugin"] = DB_AUTH_PLUGIN
+    return kwargs
+
+
 def get_connection():
-    return mysql.connector.connect(
-        host=_runtime_host,
-        port=_runtime_port,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=_runtime_name,
-        auth_plugin=DB_AUTH_PLUGIN,
-        use_pure=DB_USE_PURE,
-    )
+    attempts = [
+        _build_connection_kwargs(include_auth_plugin=True, use_pure=DB_USE_PURE),
+        _build_connection_kwargs(include_auth_plugin=False, use_pure=DB_USE_PURE),
+        _build_connection_kwargs(include_auth_plugin=False, use_pure=False),
+        _build_connection_kwargs(include_auth_plugin=False, use_pure=True),
+    ]
+
+    last_error = None
+    seen_attempts = set()
+
+    for kwargs in attempts:
+        attempt_key = tuple(sorted(kwargs.items()))
+        if attempt_key in seen_attempts:
+            continue
+        seen_attempts.add(attempt_key)
+
+        try:
+            return mysql.connector.connect(**kwargs)
+        except MySQLError as exc:
+            last_error = exc
+            error_text = str(exc).lower()
+            if "authentication plugin" not in error_text and "not supported" not in error_text:
+                raise
+
+    if last_error:
+        raise last_error
+
+    raise RuntimeError("Khong the khoi tao ket noi database.")
 
 
 load_connection_settings()

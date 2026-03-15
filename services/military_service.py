@@ -124,12 +124,85 @@ def get_all_military_records():
         conn.close()
 
 
+def get_military_status_counts():
+    ensure_military_records()
+
+    counts = {code: 0 for code, _ in STATUS_OPTIONS}
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            '''
+            SELECT
+                COALESCE(m.service_status, 'CHUA_GOI') AS service_status,
+                COUNT(*)
+            FROM citizens c
+            LEFT JOIN military_service m ON m.citizen_cccd = c.cccd
+            GROUP BY COALESCE(m.service_status, 'CHUA_GOI')
+            '''
+        )
+        for status_code, total in cursor.fetchall():
+            counts[normalize_text(status_code) or 'CHUA_GOI'] = int(total)
+        return counts
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_military_records_limited(limit_per_status=100):
+    ensure_military_records()
+
+    try:
+        limit_per_status = int(limit_per_status)
+    except (TypeError, ValueError):
+        limit_per_status = 100
+
+    if limit_per_status <= 0:
+        limit_per_status = 100
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        records = []
+        for status_code, _ in STATUS_OPTIONS:
+            cursor.execute(
+                '''
+                SELECT
+                    c.cccd,
+                    c.full_name,
+                    c.date_of_birth,
+                    c.phone,
+                    c.ward,
+                    m.service_status,
+                    m.health_check_date,
+                    m.health_result,
+                    m.enlistment_date,
+                    m.unit_name,
+                    m.position_name,
+                    m.note
+                FROM citizens c
+                LEFT JOIN military_service m ON m.citizen_cccd = c.cccd
+                WHERE COALESCE(m.service_status, 'CHUA_GOI') = %s
+                ORDER BY c.full_name ASC
+                LIMIT %s
+                ''',
+                (status_code, limit_per_status),
+            )
+            records.extend(format_military_row(row) for row in cursor.fetchall())
+        return records
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def search_military_records(keyword):
     ensure_military_records()
 
     keyword = normalize_text(keyword)
     if not keyword:
-        return get_all_military_records()
+        return get_military_records_limited()
 
     like_value = '%{}%'.format(keyword)
 

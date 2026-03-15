@@ -448,6 +448,37 @@ def get_all_citizens():
         conn.close()
 
 
+def get_citizens_limited(limit=200):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        limit = int(limit)
+        if limit <= 0:
+            limit = 200
+
+        cursor.execute(
+            '''
+            SELECT
+                cccd,
+                full_name,
+                date_of_birth,
+                gender,
+                phone,
+                ward
+            FROM citizens
+            ORDER BY full_name ASC
+            LIMIT %s
+            ''',
+            (limit,),
+        )
+        rows = cursor.fetchall()
+        return [format_citizen_row(row) for row in rows]
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def get_citizen_count():
     conn = get_connection()
     cursor = conn.cursor()
@@ -464,7 +495,7 @@ def get_citizen_count():
 def search_citizens(keyword):
     keyword = normalize_text(keyword)
     if not keyword:
-        return get_all_citizens()
+        return get_citizens_limited()
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)

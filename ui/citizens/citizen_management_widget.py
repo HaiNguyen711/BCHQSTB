@@ -1,8 +1,8 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QMessageBox, QPushButton, QTableWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QMessageBox, QPushButton, QTableWidgetItem, QVBoxLayout, QWidget
 
 from services.citizen_import_service import import_citizens_from_excel
-from services.citizen_service import delete_citizen, get_all_citizens, search_citizens
+from services.citizen_service import delete_citizen, get_citizens_limited, search_citizens
 from ui.citizens.citizen_detail_window import CitizenDetailWindow
 from ui.citizens.citizen_form import CitizenForm
 from ui.components.header import Header
@@ -10,6 +10,8 @@ from ui.components.table_widget import CitizenTable
 
 
 class CitizenManagementWidget(QWidget):
+    DEFAULT_VISIBLE_CITIZENS = 200
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.detail_windows = []
@@ -31,6 +33,16 @@ class CitizenManagementWidget(QWidget):
 
         action_row = QHBoxLayout()
         action_row.setContentsMargins(0, 0, 0, 0)
+        action_row.setSpacing(12)
+
+        self.info_label = QLabel(
+            f'Đang hiển thị {self.DEFAULT_VISIBLE_CITIZENS} công dân đầu tiên để mở app nhanh hơn. '
+            'Dùng ô tìm kiếm để tra toàn bộ dữ liệu.'
+        )
+        self.info_label.setStyleSheet('color: #5F6C8C;')
+        self.info_label.setWordWrap(True)
+        action_row.addWidget(self.info_label, 1)
+
         action_row.addStretch()
 
         self.import_button = QPushButton('Import from Excel')
@@ -74,13 +86,24 @@ class CitizenManagementWidget(QWidget):
         return item
 
     def load_data(self):
-        self.populate_table(get_all_citizens())
+        self.info_label.setText(
+            f'Đang hiển thị {self.DEFAULT_VISIBLE_CITIZENS} công dân đầu tiên để mở app nhanh hơn. '
+            'Dùng ô tìm kiếm để tra toàn bộ dữ liệu.'
+        )
+        self.populate_table(get_citizens_limited(self.DEFAULT_VISIBLE_CITIZENS))
 
     def refresh(self):
         self.load_data()
 
     def perform_search(self):
         keyword = self.header.search.text().strip()
+        if keyword:
+            self.info_label.setText(f'Kết quả tìm kiếm cho: "{keyword}"')
+        else:
+            self.info_label.setText(
+                f'Đang hiển thị {self.DEFAULT_VISIBLE_CITIZENS} công dân đầu tiên để mở app nhanh hơn. '
+                'Dùng ô tìm kiếm để tra toàn bộ dữ liệu.'
+            )
         self.populate_table(search_citizens(keyword))
 
     def open_add_form(self):
