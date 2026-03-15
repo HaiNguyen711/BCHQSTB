@@ -1,0 +1,242 @@
+QWidget {
+    font-family: "Segoe UI";
+    font-size: 13px;
+    color: #0f172a;
+}
+
+QMainWindow,
+QDialog,
+#loginWindow {
+    background-color: #f4f7fb;
+}
+
+QLabel {
+    background: transparent;
+}
+
+#pageTitle {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+#sectionTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+#loginTitle {
+    font-size: 20px;
+    font-weight: 800;
+    color: #065f46;
+}
+
+#mutedLabel {
+    color: #64748b;
+    font-weight: 600;
+}
+
+#loginCard,
+QTabWidget::pane,
+QTableWidget,
+QDialog,
+#profileSidebarCard,
+#infoCard {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+}
+
+QLineEdit,
+QTextEdit,
+QComboBox {
+    background: white;
+    border: 1px solid #d7dce5;
+    border-radius: 10px;
+    padding: 9px 10px;
+    selection-background-color: #059669;
+}
+
+QLineEdit:focus,
+QTextEdit:focus,
+QComboBox:focus {
+    border: 1px solid #059669;
+}
+
+QPushButton {
+    border: none;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-weight: 600;
+}
+
+#primaryButton {
+    background: #059669;
+    color: white;
+}
+
+#primaryButton:hover {
+    background: #047857;
+}
+
+#secondaryButton {
+    background: white;
+    color: #0f172a;
+    border: 1px solid #d1d5db;
+}
+
+#secondaryButton:hover {
+    background: #f8fafc;
+}
+
+#iconButton {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+    min-width: 40px;
+    max-width: 40px;
+    min-height: 40px;
+    max-height: 40px;
+}
+
+#iconButton:hover {
+    background: #d1fae5;
+}
+
+#sidebar {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #065f46,
+        stop:1 #064e3b);
+    color: white;
+}
+
+#sidebarLogo {
+    font-size: 24px;
+    font-weight: 800;
+    color: white;
+}
+
+#sidebarSubLogo {
+    font-size: 11px;
+    color: #d1fae5;
+    font-weight: 600;
+}
+
+#menuButton,
+#menuButtonActive {
+    text-align: left;
+    padding: 13px 14px;
+    border-radius: 12px;
+}
+
+#menuButton {
+    background: transparent;
+    color: white;
+}
+
+#menuButton:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+#menuButtonActive {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+#sidebarUserCard {
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    border-radius: 14px;
+    padding: 14px;
+    font-weight: 600;
+}
+
+QTableWidget {
+    gridline-color: transparent;
+    alternate-background-color: #f8fafc;
+}
+
+QHeaderView::section {
+    background: #f8fafc;
+    color: #334155;
+    border: none;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 12px;
+    font-weight: 700;
+}
+
+QTableWidget::item {
+    padding-left: 12px;
+    padding-right: 12px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+QTableWidget::item:selected {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+QTabBar::tab {
+    background: #f8fafc;
+    color: #475569;
+    padding: 10px 16px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    margin-right: 6px;
+}
+
+QTabBar::tab:selected {
+    background: white;
+    color: #065f46;
+    font-weight: 700;
+}
+
+#photoPlaceholder {
+    background: #ecfdf5;
+    border: 2px dashed #86efac;
+    border-radius: 18px;
+    color: #166534;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+#profileSidebarCard {
+    padding: 18px;
+}
+
+#infoCard {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+#profileName {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+#detailFieldLabel {
+    color: #334155;
+    font-weight: 600;
+    min-width: 140px;
+}
+
+QTabWidget::pane {
+    padding: 8px;
+}
+
+#infoCard {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+}
+
+#profileSidebarCard QPushButton {
+    min-height: 40px;
+}
+
+QScrollArea QWidget {
+    background: transparent;
+}

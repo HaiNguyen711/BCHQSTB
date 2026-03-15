@@ -1,0 +1,10 @@
+.venv/
+.idea/
+.codex/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+code.zip
+src.zip
