@@ -38,6 +38,7 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name='BCHQS',
+    icon='D:\\BCHQSTB\\assets\\images\\logo.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

@@ -1,5 +1,7 @@
+import os
+
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtGui import QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QDialog,
     QGridLayout,
@@ -14,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from config.database import get_connection_settings, test_connection, update_connection_settings
-from config.settings import APP_NAME, LOGIN_WINDOW_HEIGHT, LOGIN_WINDOW_WIDTH
+from config.settings import APP_NAME, LOGIN_WINDOW_HEIGHT, LOGIN_WINDOW_WIDTH, LOGO_PATH
 from services.auth_service import login
 from ui.auth.register_dialog import RegisterDialog
 from ui.main_window import MainWindow
@@ -127,8 +129,24 @@ class LoginWindow(QMainWindow):
         card = QWidget()
         card.setObjectName("loginCard")
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(28, 28, 28, 28)
-        layout.setSpacing(16)
+        layout.setContentsMargins(28, 24, 28, 28)
+        layout.setSpacing(12)
+
+        logo = QLabel()
+        logo.setObjectName("loginLogo")
+        logo.setAlignment(Qt.AlignCenter)
+        logo.setFixedHeight(72)
+        if os.path.exists(LOGO_PATH):
+            pixmap = QPixmap(LOGO_PATH)
+            if not pixmap.isNull():
+                logo.setPixmap(
+                    pixmap.scaled(
+                        84,
+                        60,
+                        Qt.KeepAspectRatio,
+                        Qt.SmoothTransformation,
+                    )
+                )
 
         title = QLabel("Đăng nhập hệ thống BCHQS")
         title.setObjectName("loginTitle")
@@ -142,7 +160,6 @@ class LoginWindow(QMainWindow):
         settings_row = QHBoxLayout()
         settings_row.setContentsMargins(0, 0, 0, 0)
         settings_row.setSpacing(0)
-
         settings_row.addStretch()
 
         settings_btn = QPushButton("Thiết lập")
@@ -171,11 +188,12 @@ class LoginWindow(QMainWindow):
         register_btn.clicked.connect(self.open_register_dialog)
         register_btn.setMinimumHeight(44)
 
+        layout.addWidget(logo, 0, Qt.AlignHCenter)
         layout.addWidget(title)
         layout.addWidget(subtitle)
         layout.addSpacing(4)
         layout.addLayout(settings_row)
-        layout.addSpacing(2)
+        layout.addSpacing(4)
         layout.addWidget(self.username_input)
         layout.addWidget(self.password_input)
         layout.addWidget(login_btn)

@@ -32,6 +32,11 @@ QLabel {
     color: #065f46;
 }
 
+#loginLogo,
+#sidebarLogoImage {
+    background: transparent;
+}
+
 #mutedLabel {
     color: #64748b;
     font-weight: 600;
@@ -114,7 +119,7 @@ QPushButton {
 }
 
 #sidebarLogo {
-    font-size: 24px;
+    font-size: 23px;
     font-weight: 800;
     color: white;
 }

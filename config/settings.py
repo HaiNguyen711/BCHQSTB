@@ -22,10 +22,11 @@ DATA_ASSETS_DIR = os.path.join(APP_DIR, 'assets')
 IMAGES_DIR = os.path.join(DATA_ASSETS_DIR, 'images')
 CITIZEN_IMAGES_DIR = os.path.join(IMAGES_DIR, 'citizens')
 STYLESHEET_PATH = os.path.join(ASSETS_DIR, 'style.qss')
+LOGO_PATH = os.path.join(ASSETS_DIR, 'images', 'logo.png')
 
 APP_NAME = 'BCHQS - Quản lý công dân'
 LOGIN_WINDOW_WIDTH = 580
-LOGIN_WINDOW_HEIGHT = 430
+LOGIN_WINDOW_HEIGHT = 520
 MAIN_WINDOW_WIDTH = 1400
 MAIN_WINDOW_HEIGHT = 820
 
