@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QTabWidget,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -272,6 +273,50 @@ class CitizenDetailWindow(QWidget):
 
         parent_layout.addLayout(parent_grid)
 
+        parent_history_card = QFrame()
+        parent_history_card.setObjectName("infoCard")
+        parent_history_layout = QVBoxLayout(parent_history_card)
+        parent_history_layout.setContentsMargins(16, 16, 16, 16)
+        parent_history_layout.setSpacing(12)
+
+        parent_history_title = QLabel("Lý lịch cha mẹ")
+        parent_history_title.setObjectName("sectionTitle")
+        parent_history_layout.addWidget(parent_history_title)
+
+        self.father_history_before_1975 = QTextEdit()
+        self.father_history_before_1975.setPlaceholderText("Thông tin lý lịch của cha trước năm 1975")
+        self.father_history_after_1975 = QTextEdit()
+        self.father_history_after_1975.setPlaceholderText("Thông tin lý lịch của cha sau năm 1975")
+        self.mother_history_before_1975 = QTextEdit()
+        self.mother_history_before_1975.setPlaceholderText("Thông tin lý lịch của mẹ trước năm 1975")
+        self.mother_history_after_1975 = QTextEdit()
+        self.mother_history_after_1975.setPlaceholderText("Thông tin lý lịch của mẹ sau năm 1975")
+
+        for editor in (
+            self.father_history_before_1975,
+            self.father_history_after_1975,
+            self.mother_history_before_1975,
+            self.mother_history_after_1975,
+        ):
+            editor.setMinimumHeight(90)
+
+        parent_history_grid = QGridLayout()
+        parent_history_grid.setHorizontalSpacing(16)
+        parent_history_grid.setVerticalSpacing(12)
+        parent_history_grid.setColumnStretch(0, 1)
+        parent_history_grid.setColumnStretch(1, 1)
+
+        parent_history_grid.addWidget(self.make_field_label("Lý lịch cha trước 1975"), 0, 0)
+        parent_history_grid.addWidget(self.make_field_label("Lý lịch cha sau 1975"), 0, 1)
+        parent_history_grid.addWidget(self.father_history_before_1975, 1, 0)
+        parent_history_grid.addWidget(self.father_history_after_1975, 1, 1)
+        parent_history_grid.addWidget(self.make_field_label("Lý lịch mẹ trước 1975"), 2, 0)
+        parent_history_grid.addWidget(self.make_field_label("Lý lịch mẹ sau 1975"), 2, 1)
+        parent_history_grid.addWidget(self.mother_history_before_1975, 3, 0)
+        parent_history_grid.addWidget(self.mother_history_after_1975, 3, 1)
+
+        parent_history_layout.addLayout(parent_history_grid)
+
         family_card = QFrame()
         family_card.setObjectName("infoCard")
         family_layout = QVBoxLayout(family_card)
@@ -313,6 +358,7 @@ class CitizenDetailWindow(QWidget):
         family_layout.addLayout(family_grid)
 
         page_layout.addWidget(parent_card)
+        page_layout.addWidget(parent_history_card)
         page_layout.addWidget(family_card)
         page_layout.addStretch()
 
@@ -419,6 +465,10 @@ class CitizenDetailWindow(QWidget):
         self.mother_birth_date.setText(background.get("mother_birth_date", "") or "")
         self.mother_phone.setText(background.get("mother_phone", "") or "")
         self.mother_status.setText(background.get("mother_status", "") or "")
+        self.father_history_before_1975.setPlainText(background.get("father_history_before_1975", "") or "")
+        self.father_history_after_1975.setPlainText(background.get("father_history_after_1975", "") or "")
+        self.mother_history_before_1975.setPlainText(background.get("mother_history_before_1975", "") or "")
+        self.mother_history_after_1975.setPlainText(background.get("mother_history_after_1975", "") or "")
 
         self.family_status.setText(background.get("family_status", "") or "")
         self.criminal_record.setText(background.get("criminal_record", "") or "")
@@ -518,6 +568,10 @@ class CitizenDetailWindow(QWidget):
             "mother_birth_date": self.mother_birth_date.text().strip(),
             "mother_phone": self.mother_phone.text().strip(),
             "mother_status": self.mother_status.text().strip(),
+            "father_history_before_1975": self.father_history_before_1975.toPlainText().strip(),
+            "father_history_after_1975": self.father_history_after_1975.toPlainText().strip(),
+            "mother_history_before_1975": self.mother_history_before_1975.toPlainText().strip(),
+            "mother_history_after_1975": self.mother_history_after_1975.toPlainText().strip(),
 
             "family_status": self.family_status.text().strip(),
             "criminal_record": self.criminal_record.text().strip(),

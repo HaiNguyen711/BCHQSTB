@@ -1,6 +1,7 @@
 from datetime import date, datetime
 
 from config.database import get_connection
+from config.settings import DB_NAME
 
 DISPLAY_DATE_FORMAT = '%d-%m-%Y'
 DB_DATE_FORMAT = '%Y-%m-%d'
@@ -82,6 +83,35 @@ def format_citizen_row(row):
     row['ethnicity'] = normalize_text(row.get('ethnicity'))
     row['photo_path'] = normalize_text(row.get('photo_path'))
     return row
+
+
+def ensure_background_schema(cursor):
+    cursor.execute(
+        '''
+        SELECT COLUMN_NAME
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'citizen_backgrounds'
+        ''',
+        (DB_NAME,),
+    )
+    existing_columns = set()
+    for row in cursor.fetchall():
+        if isinstance(row, dict):
+            existing_columns.add(row.get('COLUMN_NAME', ''))
+        else:
+            existing_columns.add(row[0])
+    required_columns = {
+        'father_history_before_1975': 'TEXT NULL',
+        'father_history_after_1975': 'TEXT NULL',
+        'mother_history_before_1975': 'TEXT NULL',
+        'mother_history_after_1975': 'TEXT NULL',
+    }
+
+    for column_name, column_definition in required_columns.items():
+        if column_name not in existing_columns:
+            cursor.execute(
+                f'ALTER TABLE citizen_backgrounds ADD COLUMN {column_name} {column_definition}'
+            )
 
 
 def create_citizen(data):
@@ -302,12 +332,17 @@ def save_background(data):
     cursor = conn.cursor()
 
     try:
+        ensure_background_schema(cursor)
         payload = {
             'citizen_cccd': normalize_text(data.get('citizen_cccd')),
             'father_name': normalize_text(data.get('father_name')),
             'father_phone': normalize_text(data.get('father_phone')),
             'mother_name': normalize_text(data.get('mother_name')),
             'mother_phone': normalize_text(data.get('mother_phone')),
+            'father_history_before_1975': normalize_text(data.get('father_history_before_1975')),
+            'father_history_after_1975': normalize_text(data.get('father_history_after_1975')),
+            'mother_history_before_1975': normalize_text(data.get('mother_history_before_1975')),
+            'mother_history_after_1975': normalize_text(data.get('mother_history_after_1975')),
             'family_status': normalize_text(data.get('family_status')),
             'criminal_record': normalize_text(data.get('criminal_record')),
             'party_union_status': normalize_text(data.get('party_union_status')),
@@ -322,17 +357,25 @@ def save_background(data):
                 father_phone,
                 mother_name,
                 mother_phone,
+                father_history_before_1975,
+                father_history_after_1975,
+                mother_history_before_1975,
+                mother_history_after_1975,
                 family_status,
                 criminal_record,
                 party_union_status,
                 notes
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
                 father_name = VALUES(father_name),
                 father_phone = VALUES(father_phone),
                 mother_name = VALUES(mother_name),
                 mother_phone = VALUES(mother_phone),
+                father_history_before_1975 = VALUES(father_history_before_1975),
+                father_history_after_1975 = VALUES(father_history_after_1975),
+                mother_history_before_1975 = VALUES(mother_history_before_1975),
+                mother_history_after_1975 = VALUES(mother_history_after_1975),
                 family_status = VALUES(family_status),
                 criminal_record = VALUES(criminal_record),
                 party_union_status = VALUES(party_union_status),
@@ -344,6 +387,10 @@ def save_background(data):
                 payload['father_phone'],
                 payload['mother_name'],
                 payload['mother_phone'],
+                payload['father_history_before_1975'],
+                payload['father_history_after_1975'],
+                payload['mother_history_before_1975'],
+                payload['mother_history_after_1975'],
                 payload['family_status'],
                 payload['criminal_record'],
                 payload['party_union_status'],
@@ -365,6 +412,7 @@ def get_citizen_background(cccd):
     cursor = conn.cursor(dictionary=True)
 
     try:
+        ensure_background_schema(cursor)
         cursor.execute('SELECT * FROM citizen_backgrounds WHERE citizen_cccd = %s LIMIT 1', (cccd,))
         row = cursor.fetchone()
         if not row:
@@ -446,6 +494,7 @@ def get_citizen_detail(cccd):
     cursor = conn.cursor(dictionary=True)
 
     try:
+        ensure_background_schema(cursor)
         cursor.execute("SELECT * FROM citizens WHERE cccd = %s", (cccd,))
         citizen = cursor.fetchone()
 
@@ -473,6 +522,7 @@ def update_citizen_detail(data):
     cursor = conn.cursor()
 
     try:
+        ensure_background_schema(cursor)
         cccd = normalize_text(data.get("cccd"))
 
         cursor.execute(
@@ -527,6 +577,10 @@ def update_citizen_detail(data):
                 father_status,
                 mother_birth_date,
                 mother_status,
+                father_history_before_1975,
+                father_history_after_1975,
+                mother_history_before_1975,
+                mother_history_after_1975,
                 spouse_info,
                 children_info,
                 total_male_children,
@@ -537,7 +591,8 @@ def update_citizen_detail(data):
                 %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s,
+                %s
             )
             ON DUPLICATE KEY UPDATE
                 father_name = VALUES(father_name),
@@ -563,6 +618,10 @@ def update_citizen_detail(data):
                 father_status = VALUES(father_status),
                 mother_birth_date = VALUES(mother_birth_date),
                 mother_status = VALUES(mother_status),
+                father_history_before_1975 = VALUES(father_history_before_1975),
+                father_history_after_1975 = VALUES(father_history_after_1975),
+                mother_history_before_1975 = VALUES(mother_history_before_1975),
+                mother_history_after_1975 = VALUES(mother_history_after_1975),
                 spouse_info = VALUES(spouse_info),
                 children_info = VALUES(children_info),
                 total_male_children = VALUES(total_male_children),
@@ -596,6 +655,10 @@ def update_citizen_detail(data):
                 normalize_text(data.get("father_status")),
                 normalize_text(data.get("mother_birth_date")),
                 normalize_text(data.get("mother_status")),
+                normalize_text(data.get("father_history_before_1975")),
+                normalize_text(data.get("father_history_after_1975")),
+                normalize_text(data.get("mother_history_before_1975")),
+                normalize_text(data.get("mother_history_after_1975")),
 
                 normalize_text(data.get("spouse_info")),
                 normalize_text(data.get("children_info")),
