@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime
 
 from config.database import get_connection
@@ -105,6 +106,8 @@ def ensure_background_schema(cursor):
         'father_history_after_1975': 'TEXT NULL',
         'mother_history_before_1975': 'TEXT NULL',
         'mother_history_after_1975': 'TEXT NULL',
+        'siblings_json': 'LONGTEXT NULL',
+        'personal_situation': 'LONGTEXT NULL',
     }
 
     for column_name, column_definition in required_columns.items():
@@ -112,6 +115,34 @@ def ensure_background_schema(cursor):
             cursor.execute(
                 f'ALTER TABLE citizen_backgrounds ADD COLUMN {column_name} {column_definition}'
             )
+
+
+def normalize_siblings(value):
+    if isinstance(value, list):
+        normalized = []
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            normalized.append(
+                {
+                    'full_name': normalize_text(item.get('full_name')),
+                    'date_of_birth': normalize_text(item.get('date_of_birth')),
+                    'occupation': normalize_text(item.get('occupation')),
+                    'workplace': normalize_text(item.get('workplace')),
+                }
+            )
+        return normalized
+
+    raw_value = normalize_text(value)
+    if not raw_value:
+        return []
+
+    try:
+        parsed = json.loads(raw_value)
+    except (TypeError, ValueError):
+        return []
+
+    return normalize_siblings(parsed)
 
 
 def create_citizen(data):
@@ -343,6 +374,7 @@ def save_background(data):
             'father_history_after_1975': normalize_text(data.get('father_history_after_1975')),
             'mother_history_before_1975': normalize_text(data.get('mother_history_before_1975')),
             'mother_history_after_1975': normalize_text(data.get('mother_history_after_1975')),
+            'siblings_json': json.dumps(normalize_siblings(data.get('siblings')), ensure_ascii=False),
             'family_status': normalize_text(data.get('family_status')),
             'criminal_record': normalize_text(data.get('criminal_record')),
             'party_union_status': normalize_text(data.get('party_union_status')),
@@ -361,12 +393,13 @@ def save_background(data):
                 father_history_after_1975,
                 mother_history_before_1975,
                 mother_history_after_1975,
+                siblings_json,
                 family_status,
                 criminal_record,
                 party_union_status,
                 notes
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
                 father_name = VALUES(father_name),
                 father_phone = VALUES(father_phone),
@@ -376,6 +409,7 @@ def save_background(data):
                 father_history_after_1975 = VALUES(father_history_after_1975),
                 mother_history_before_1975 = VALUES(mother_history_before_1975),
                 mother_history_after_1975 = VALUES(mother_history_after_1975),
+                siblings_json = VALUES(siblings_json),
                 family_status = VALUES(family_status),
                 criminal_record = VALUES(criminal_record),
                 party_union_status = VALUES(party_union_status),
@@ -391,6 +425,7 @@ def save_background(data):
                 payload['father_history_after_1975'],
                 payload['mother_history_before_1975'],
                 payload['mother_history_after_1975'],
+                payload['siblings_json'],
                 payload['family_status'],
                 payload['criminal_record'],
                 payload['party_union_status'],
@@ -417,6 +452,7 @@ def get_citizen_background(cccd):
         row = cursor.fetchone()
         if not row:
             return {}
+        row['siblings'] = normalize_siblings(row.get('siblings_json'))
         return row
     finally:
         cursor.close()
@@ -503,6 +539,8 @@ def get_citizen_detail(cccd):
 
         cursor.execute("SELECT * FROM citizen_backgrounds WHERE citizen_cccd = %s", (cccd,))
         background = cursor.fetchone()
+        if background:
+            background['siblings'] = normalize_siblings(background.get('siblings_json'))
 
         cursor.execute("SELECT * FROM citizen_health WHERE citizen_cccd = %s", (cccd,))
         health = cursor.fetchone()
@@ -573,6 +611,7 @@ def update_citizen_detail(data):
                 party_join_date,
                 union_join_date,
                 workplace_or_school,
+                personal_situation,
                 father_birth_date,
                 father_status,
                 mother_birth_date,
@@ -581,6 +620,7 @@ def update_citizen_detail(data):
                 father_history_after_1975,
                 mother_history_before_1975,
                 mother_history_after_1975,
+                siblings_json,
                 spouse_info,
                 children_info,
                 total_male_children,
@@ -592,7 +632,7 @@ def update_citizen_detail(data):
                 %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s,
-                %s
+                %s, %s
             )
             ON DUPLICATE KEY UPDATE
                 father_name = VALUES(father_name),
@@ -614,6 +654,7 @@ def update_citizen_detail(data):
                 party_join_date = VALUES(party_join_date),
                 union_join_date = VALUES(union_join_date),
                 workplace_or_school = VALUES(workplace_or_school),
+                personal_situation = VALUES(personal_situation),
                 father_birth_date = VALUES(father_birth_date),
                 father_status = VALUES(father_status),
                 mother_birth_date = VALUES(mother_birth_date),
@@ -622,6 +663,7 @@ def update_citizen_detail(data):
                 father_history_after_1975 = VALUES(father_history_after_1975),
                 mother_history_before_1975 = VALUES(mother_history_before_1975),
                 mother_history_after_1975 = VALUES(mother_history_after_1975),
+                siblings_json = VALUES(siblings_json),
                 spouse_info = VALUES(spouse_info),
                 children_info = VALUES(children_info),
                 total_male_children = VALUES(total_male_children),
@@ -650,6 +692,7 @@ def update_citizen_detail(data):
                 normalize_text(data.get("party_join_date")),
                 normalize_text(data.get("union_join_date")),
                 normalize_text(data.get("workplace_or_school")),
+                normalize_text(data.get("personal_situation")),
 
                 normalize_text(data.get("father_birth_date")),
                 normalize_text(data.get("father_status")),
@@ -659,6 +702,7 @@ def update_citizen_detail(data):
                 normalize_text(data.get("father_history_after_1975")),
                 normalize_text(data.get("mother_history_before_1975")),
                 normalize_text(data.get("mother_history_after_1975")),
+                json.dumps(normalize_siblings(data.get("siblings")), ensure_ascii=False),
 
                 normalize_text(data.get("spouse_info")),
                 normalize_text(data.get("children_info")),
