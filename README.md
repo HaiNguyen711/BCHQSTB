@@ -12,7 +12,7 @@
 - Theo dõi trạng thái nghĩa vụ quân sự
 - Dashboard thống kê tổng hợp
 
-Entry point của ứng dụng là [main.py](/E:/CodeX/BCHQSTB/main.py).
+Entry point của ứng dụng là [main.py](main.py).
 
 ## Cấu trúc thư mục
 
@@ -62,7 +62,7 @@ python -m pip install pyinstaller
 
 ## Cấu hình database
 
-Thông tin kết nối mặc định nằm trong [config/settings.py](/E:/CodeX/BCHQSTB/config/settings.py):
+Thông tin kết nối mặc định nằm trong [config/settings.py](config/settings.py):
 
 - `DB_HOST`
 - `DB_PORT`
@@ -79,12 +79,12 @@ Mặc định project đang dùng:
 
 Ứng dụng hỗ trợ ghi đè `host`, `port`, `database` vào file runtime:
 
-- [config/db_connection.json](/E:/CodeX/BCHQSTB/config/db_connection.json)
+- `config/db_connection.json`
 
 Bạn có 3 cách cấu hình:
 
-1. Sửa trực tiếp trong [config/settings.py](/E:/CodeX/BCHQSTB/config/settings.py)
-2. Tạo file [config/db_connection.json](/E:/CodeX/BCHQSTB/config/db_connection.json)
+1. Sửa trực tiếp trong [config/settings.py](config/settings.py)
+2. Tạo file `config/db_connection.json`
 3. Mở app và bấm `Thiết lập` trong màn hình đăng nhập, hoặc dùng phím tắt `Ctrl+Shift+D`
 
 Ví dụ `config/db_connection.json`:
@@ -101,8 +101,8 @@ Ví dụ `config/db_connection.json`:
 
 Project đã có sẵn schema và script bootstrap:
 
-- [config/schema.sql](/E:/CodeX/BCHQSTB/config/schema.sql)
-- [scripts/init_database.py](/E:/CodeX/BCHQSTB/scripts/init_database.py)
+- [config/schema.sql](config/schema.sql)
+- [scripts/init_database.py](scripts/init_database.py)
 
 ### Cách 1: Tạo user và grant bằng root
 
@@ -120,10 +120,9 @@ FLUSH PRIVILEGES;
 
 ### Cách 2: Apply schema từ source
 
-Sau khi user `bch` đã có quyền trên database, chạy:
+Sau khi user `bch` đã có quyền trên database, chạy ngay trong thư mục project:
 
 ```powershell
-$env:PYTHONPATH="E:\CodeX\BCHQSTB"
 python scripts\init_database.py --host 10.164.88.37 --port 3306
 ```
 
@@ -132,7 +131,7 @@ Script này sẽ:
 - kết nối MySQL bằng credential trong project
 - tạo database nếu chưa có
 - tạo các bảng cần thiết
-- ghi file [config/db_connection.json](/E:/CodeX/BCHQSTB/config/db_connection.json)
+- ghi file `config/db_connection.json`
 
 ## Schema tối thiểu
 
@@ -148,7 +147,7 @@ Lưu ý:
 
 - App không tự tạo toàn bộ schema khi chạy thường.
 - Một số cột thiếu trong `citizen_backgrounds` có thể được bổ sung bởi service runtime.
-- Nếu dùng DB mới, nên apply [config/schema.sql](/E:/CodeX/BCHQSTB/config/schema.sql) trước.
+- Nếu dùng DB mới, nên apply [config/schema.sql](config/schema.sql) trước.
 
 ## Chạy ứng dụng
 
@@ -171,7 +170,7 @@ Nếu mới bootstrap một DB trong quá trình test, có thể seed thủ côn
 
 ## Luồng sử dụng cơ bản
 
-1. Mở app từ [main.py](/E:/CodeX/BCHQSTB/main.py)
+1. Mở app từ [main.py](main.py)
 2. Cấu hình kết nối MySQL nếu cần
 3. Đăng ký tài khoản mới hoặc đăng nhập
 4. Quản lý công dân trong module citizen
@@ -180,7 +179,7 @@ Nếu mới bootstrap một DB trong quá trình test, có thể seed thủ côn
 
 ## Quy tắc nghĩa vụ quân sự
 
-Trạng thái được code sẵn trong [services/military_service.py](/E:/CodeX/BCHQSTB/services/military_service.py), gồm:
+Trạng thái được code sẵn trong [services/military_service.py](services/military_service.py), gồm:
 
 - `CHUA_GOI`
 - `KHAM_SO_TUYEN`
@@ -196,7 +195,7 @@ Hệ thống chỉ cho chuyển sang bước kế tiếp trong quy trình, hoặ
 
 ## Build file exe
 
-File build nằm tại [BCHQS.spec](/E:/CodeX/BCHQSTB/BCHQS.spec).
+File build nằm tại [BCHQS.spec](BCHQS.spec).
 
 Bản spec hiện tại đã được sửa để:
 
@@ -212,18 +211,18 @@ python -m PyInstaller -y BCHQS.spec
 
 File output:
 
-- [dist/BCHQS/BCHQS.exe](/E:/CodeX/BCHQSTB/dist/BCHQS/BCHQS.exe)
+- `dist/BCHQS/BCHQS.exe`
 
 ## Lưu ý khi chuyển giữa các máy
 
-- Không commit [config/db_connection.json](/E:/CodeX/BCHQSTB/config/db_connection.json) nếu đây là cấu hình runtime riêng cho từng môi trường.
+- Không commit `config/db_connection.json` nếu đây là cấu hình runtime riêng cho từng môi trường.
 - Source đã portable cho build exe, nhưng máy build vẫn cần cài Python, dependencies và PyInstaller.
-- Nếu về máy cũ, chỉ cần `git pull`, cài package, cấu hình DB và build lại bằng [BCHQS.spec](/E:/CodeX/BCHQSTB/BCHQS.spec).
+- Nếu về máy cũ, chỉ cần `git pull`, cài package, cấu hình DB và build lại bằng [BCHQS.spec](BCHQS.spec).
 
 ## Lưu ý phát triển
 
 - Giao diện được xây dựng bằng `PySide6`
-- Stylesheet nằm tại [assets/style.qss](/E:/CodeX/BCHQSTB/assets/style.qss)
+- Stylesheet nằm tại [assets/style.qss](assets/style.qss)
 - Đã có một số chuỗi UI được dọn lại để tránh lỗi hiển thị tiếng Việt
 - Build Windows dùng `PyInstaller`
 

@@ -1,9 +1,14 @@
 import argparse
 import json
 from pathlib import Path
+import sys
 
 import mysql.connector
 from mysql.connector import Error as MySQLError
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from config.settings import BASE_DIR, DB_AUTH_PLUGIN, DB_NAME, DB_PASSWORD, DB_PORT, DB_USE_PURE, DB_USER
 
@@ -58,7 +63,7 @@ def connect_with_fallback(host, port, database=None):
 
     if last_error:
         raise last_error
-    raise RuntimeError("Khong the ket noi MySQL.")
+    raise RuntimeError("Không thể kết nối MySQL.")
 
 
 def split_sql_script(sql_text):

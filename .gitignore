@@ -13,3 +13,5 @@ build/
 dist/
 dist_fixed/
 dist_fixed2/
+build_verify/
+dist_verify/

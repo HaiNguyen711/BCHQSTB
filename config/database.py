@@ -143,7 +143,7 @@ def get_connection():
     if last_error:
         raise last_error
 
-    raise RuntimeError("Khong the khoi tao ket noi database.")
+    raise RuntimeError("Không thể khởi tạo kết nối database.")
 
 
 load_connection_settings()
