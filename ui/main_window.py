@@ -53,7 +53,10 @@ class MainWindow(QMainWindow):
         self.citizen_page = CitizenManagementWidget(self)
         self.military_page = MilitaryManagementWidget(self)
         self.stats_page = StatsDashboardWidget(self)
-        self.report_page = PlaceholderPage('Hồ sơ báo cáo', 'Module hồ sơ báo cáo sẽ phát triển tiếp trên nền này.')
+        self.report_page = PlaceholderPage(
+            'Hồ sơ báo cáo',
+            'Module hồ sơ báo cáo sẽ phát triển tiếp trên nền này.',
+        )
 
         self.stack.addWidget(self.citizen_page)
         self.stack.addWidget(self.military_page)
