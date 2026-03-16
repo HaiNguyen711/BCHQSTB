@@ -1,25 +1,29 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_data_files
-from PyInstaller.utils.hooks import collect_submodules
+from pathlib import Path
+
 from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import collect_submodules
+
+PROJECT_DIR = Path(SPECPATH)
+ASSETS_DIR = PROJECT_DIR / 'assets'
 
 datas = [
-    ('D:\\BCHQSTB\\assets', 'assets'),
-    ('D:\\BCHQSTB\\.venv\\Lib\\site-packages\\mysql\\connector\\locales', 'mysql\\connector\\locales'),
-    ('D:\\BCHQSTB\\.venv\\Lib\\site-packages\\mysql\\connector\\plugins', 'mysql\\connector\\plugins'),
-    ('D:\\BCHQSTB\\.venv\\Lib\\site-packages\\mysql\\vendor', 'mysql\\vendor'),
+    (str(ASSETS_DIR), 'assets'),
 ]
 binaries = []
 hiddenimports = ['passlib.handlers.pbkdf2']
 hiddenimports += collect_submodules('mysql.connector')
 hiddenimports += collect_submodules('mysql.connector.plugins')
+
 tmp_ret = collect_all('qtawesome')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+datas += tmp_ret[0]
+binaries += tmp_ret[1]
+hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
-    ['D:\\BCHQSTB\\main.py'],
-    pathex=['D:\\BCHQSTB\\.venv\\Lib\\site-packages'],
+    ['main.py'],
+    pathex=[str(PROJECT_DIR)],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
@@ -38,7 +42,7 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name='BCHQS',
-    icon='D:\\BCHQSTB\\assets\\images\\logo.ico',
+    icon=str(ASSETS_DIR / 'images' / 'logo.ico'),
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
