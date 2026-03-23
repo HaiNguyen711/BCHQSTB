@@ -6,9 +6,13 @@ from PyInstaller.utils.hooks import collect_submodules
 
 PROJECT_DIR = Path(SPECPATH)
 ASSETS_DIR = PROJECT_DIR / 'assets'
+VENV_SITE_PACKAGES = PROJECT_DIR / '.venv' / 'Lib' / 'site-packages'
 
 datas = [
     (str(ASSETS_DIR), 'assets'),
+    (str(VENV_SITE_PACKAGES / 'mysql' / 'connector' / 'locales'), 'mysql\\connector\\locales'),
+    (str(VENV_SITE_PACKAGES / 'mysql' / 'connector' / 'plugins'), 'mysql\\connector\\plugins'),
+    (str(VENV_SITE_PACKAGES / 'mysql' / 'vendor'), 'mysql\\vendor'),
 ]
 binaries = []
 hiddenimports = ['passlib.handlers.pbkdf2']
@@ -23,7 +27,7 @@ hiddenimports += tmp_ret[2]
 
 a = Analysis(
     ['main.py'],
-    pathex=[str(PROJECT_DIR)],
+    pathex=[str(PROJECT_DIR), str(VENV_SITE_PACKAGES)],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
