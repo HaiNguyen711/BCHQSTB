@@ -56,10 +56,10 @@ class StatsDashboardWidget(QWidget):
         self.breakdown_grid.setVerticalSpacing(16)
 
         self.status_card = self.build_list_card('Trạng thái nhập ngũ')
-        self.ward_card = self.build_list_card('Phường nhiều công dân')
+        self.neighborhood_card = self.build_list_card('Khu phố nhiều công dân')
 
         self.breakdown_grid.addWidget(self.status_card['card'], 0, 0)
-        self.breakdown_grid.addWidget(self.ward_card['card'], 0, 1)
+        self.breakdown_grid.addWidget(self.neighborhood_card['card'], 0, 1)
 
         self.page_layout.addWidget(title)
         self.page_layout.addWidget(subtitle)
@@ -158,6 +158,6 @@ class StatsDashboardWidget(QWidget):
         for item in stats.get('military_status_counts', []):
             self.add_list_row(self.status_card['content'], item.get('label', ''), item.get('count', 0))
 
-        self.clear_layout(self.ward_card['content'])
-        for item in stats.get('ward_counts', []):
-            self.add_list_row(self.ward_card['content'], item.get('label', ''), item.get('count', 0))
+        self.clear_layout(self.neighborhood_card['content'])
+        for item in stats.get('neighborhood_counts', []):
+            self.add_list_row(self.neighborhood_card['content'], item.get('label', ''), item.get('count', 0))

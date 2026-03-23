@@ -1,4 +1,6 @@
 import json
+import re
+import unicodedata
 from datetime import date, datetime
 
 from config.database import get_connection
@@ -12,6 +14,70 @@ def normalize_text(value):
     if value is None:
         return ''
     return str(value).strip()
+
+
+def strip_accents(value):
+    normalized = unicodedata.normalize('NFD', normalize_text(value))
+    return ''.join(char for char in normalized if unicodedata.category(char) != 'Mn')
+
+
+def normalize_search_text(value):
+    raw_value = strip_accents(value).lower()
+    raw_value = raw_value.replace('khu pho', 'kp')
+    return ' '.join(raw_value.split())
+
+
+def format_neighborhood_label(value):
+    raw_value = normalize_text(value).strip(' ,.-')
+    if not raw_value:
+        return ''
+    if normalize_search_text(raw_value).startswith('khu cong nghiep'):
+        return raw_value
+    if normalize_search_text(raw_value).startswith('kp '):
+        return 'KP ' + raw_value[2:].strip(' .')
+    return 'KP ' + raw_value
+
+
+def extract_neighborhood_from_address(address, fallback=''):
+    raw_address = normalize_text(address)
+    if raw_address:
+        parts = [part.strip() for part in re.split(r'[,;/-]+', raw_address) if part.strip()]
+        for part in parts:
+            if normalize_search_text(part).startswith('khu cong nghiep'):
+                return normalize_text(part)
+            if normalize_search_text(part).startswith('kp '):
+                return format_neighborhood_label(part[2:].strip(' .'))
+
+        industrial_match = re.search(r'(khu\s*c[oô]ng\s*nghi[eệ]p[^,;/-]*)', raw_address, flags=re.IGNORECASE)
+        if industrial_match:
+            return normalize_text(industrial_match.group(1))
+
+        match = re.search(r'(?:khu\s*ph[oố]\s+|kp\.?\s*)([^,;/-]+)', raw_address, flags=re.IGNORECASE)
+        if match:
+            return format_neighborhood_label(match.group(1))
+
+    fallback_value = normalize_text(fallback)
+    if fallback_value:
+        if normalize_search_text(fallback_value).startswith('khu cong nghiep'):
+            return fallback_value
+        normalized_fallback = re.sub(r'^(?:kp\.?\s*|khu\s*ph[oố]\s*)', '', fallback_value, flags=re.IGNORECASE)
+        return format_neighborhood_label(normalized_fallback)
+    return ''
+
+
+def citizen_matches_keyword(citizen, keyword):
+    normalized_keyword = normalize_search_text(keyword)
+    if not normalized_keyword:
+        return True
+
+    searchable_values = [
+        citizen.get('cccd', ''),
+        citizen.get('full_name', ''),
+        citizen.get('phone', ''),
+        citizen.get('address', ''),
+        citizen.get('display_neighborhood', ''),
+    ]
+    return any(normalized_keyword in normalize_search_text(value) for value in searchable_values)
 
 
 def normalize_int(value):
@@ -78,6 +144,7 @@ def format_citizen_row(row):
     row['ward'] = normalize_text(row.get('ward'))
     row['address'] = normalize_text(row.get('address'))
     row['neighborhood'] = normalize_text(row.get('neighborhood'))
+    row['display_neighborhood'] = extract_neighborhood_from_address(row.get('address'), row.get('neighborhood'))
     row['education_level'] = normalize_text(row.get('education_level'))
     row['occupation'] = normalize_text(row.get('occupation'))
     row['religion'] = normalize_text(row.get('religion'))
@@ -436,7 +503,9 @@ def get_all_citizens():
                 date_of_birth,
                 gender,
                 phone,
-                ward
+                ward,
+                address,
+                neighborhood
             FROM citizens
             ORDER BY full_name ASC
             '''
@@ -465,7 +534,9 @@ def get_citizens_limited(limit=200):
                 date_of_birth,
                 gender,
                 phone,
-                ward
+                ward,
+                address,
+                neighborhood
             FROM citizens
             ORDER BY full_name ASC
             LIMIT %s
@@ -496,32 +567,7 @@ def search_citizens(keyword):
     keyword = normalize_text(keyword)
     if not keyword:
         return get_citizens_limited()
-
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    try:
-        like_value = '%{}%'.format(keyword)
-        cursor.execute(
-            '''
-            SELECT
-                cccd,
-                full_name,
-                date_of_birth,
-                gender,
-                phone,
-                ward
-            FROM citizens
-            WHERE full_name LIKE %s OR cccd LIKE %s OR phone LIKE %s
-            ORDER BY full_name ASC
-            ''',
-            (like_value, like_value, like_value),
-        )
-        rows = cursor.fetchall()
-        return [format_citizen_row(row) for row in rows]
-    finally:
-        cursor.close()
-        conn.close()
+    return [citizen for citizen in get_all_citizens() if citizen_matches_keyword(citizen, keyword)]
 
 
 def get_citizen(cccd):

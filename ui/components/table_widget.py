@@ -26,7 +26,7 @@ class BaseTable(QTableWidget):
 
 class CitizenTable(BaseTable):
     def __init__(self):
-        BaseTable.__init__(self, ['CCCD', 'Họ tên', 'Ngày sinh', 'Giới tính', 'SĐT', 'Phường', ''])
+        BaseTable.__init__(self, ['CCCD', 'Họ tên', 'Ngày sinh', 'SĐT', 'Khu phố', ''])
 
 
 class MilitaryTable(BaseTable):

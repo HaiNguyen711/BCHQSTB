@@ -25,7 +25,7 @@ class CitizenManagementWidget(QWidget):
 
         self.header = Header(
             'Quản lý công dân',
-            'Tìm theo tên hoặc CCCD...',
+            'Tìm theo tên, CCCD, SĐT hoặc KP...',
             self.perform_search,
             'Thêm công dân',
             self.open_add_form,
@@ -64,9 +64,8 @@ class CitizenManagementWidget(QWidget):
             self.table.setItem(row, 0, self.make_item(citizen.get('cccd', ''), Qt.AlignCenter))
             self.table.setItem(row, 1, self.make_item(citizen.get('full_name', ''), Qt.AlignVCenter | Qt.AlignLeft))
             self.table.setItem(row, 2, self.make_item(citizen.get('date_of_birth', ''), Qt.AlignCenter))
-            self.table.setItem(row, 3, self.make_item(citizen.get('gender', ''), Qt.AlignCenter))
-            self.table.setItem(row, 4, self.make_item(citizen.get('phone', ''), Qt.AlignCenter))
-            self.table.setItem(row, 5, self.make_item(citizen.get('ward', ''), Qt.AlignVCenter | Qt.AlignLeft))
+            self.table.setItem(row, 3, self.make_item(citizen.get('phone', ''), Qt.AlignCenter))
+            self.table.setItem(row, 4, self.make_item(citizen.get('display_neighborhood', ''), Qt.AlignVCenter | Qt.AlignLeft))
 
             action_widget = QWidget()
             action_layout = QHBoxLayout(action_widget)
@@ -78,7 +77,7 @@ class CitizenManagementWidget(QWidget):
 
             action_layout.addWidget(delete_btn)
             action_layout.setAlignment(Qt.AlignCenter)
-            self.table.setCellWidget(row, 6, action_widget)
+            self.table.setCellWidget(row, 5, action_widget)
 
     def make_item(self, text, alignment):
         item = QTableWidgetItem(str(text))

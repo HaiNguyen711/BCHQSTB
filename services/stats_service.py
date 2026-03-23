@@ -1,4 +1,7 @@
+from collections import Counter
+
 from config.database import get_connection
+from services.citizen_service import extract_neighborhood_from_address
 from services.military_service import STATUS_OPTIONS
 
 
@@ -19,7 +22,7 @@ def get_dashboard_stats():
             'female_count': 0,
             'eligible_age_count': 0,
             'military_status_counts': [],
-            'ward_counts': [],
+            'neighborhood_counts': [],
         }
 
         cursor.execute('SELECT COUNT(*) AS total FROM citizens')
@@ -71,24 +74,21 @@ def get_dashboard_stats():
 
         cursor.execute(
             '''
-            SELECT
-                CASE
-                    WHEN ward IS NULL OR TRIM(ward) = '' THEN 'Chưa cập nhật'
-                    ELSE ward
-                END AS ward_name,
-                COUNT(*) AS total
+            SELECT address, neighborhood
             FROM citizens
-            GROUP BY ward_name
-            ORDER BY total DESC, ward_name ASC
-            LIMIT 8
             '''
         )
-        stats['ward_counts'] = [
+        neighborhood_totals = Counter()
+        for row in cursor.fetchall():
+            label = extract_neighborhood_from_address(row.get('address'), row.get('neighborhood')) or 'Chưa cập nhật'
+            neighborhood_totals[label] += 1
+
+        stats['neighborhood_counts'] = [
             {
-                'label': row.get('ward_name') or 'Chưa cập nhật',
-                'count': int(row.get('total') or 0),
+                'label': label,
+                'count': count,
             }
-            for row in cursor.fetchall()
+            for label, count in sorted(neighborhood_totals.items(), key=lambda item: (-item[1], item[0]))
         ]
 
         return stats
